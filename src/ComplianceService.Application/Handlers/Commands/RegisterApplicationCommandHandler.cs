@@ -1,10 +1,10 @@
 using ComplianceService.Application.Commands;
 using ComplianceService.Application.DTOs;
-using ComplianceService.Domain.ApplicationProfile;
 using ComplianceService.Domain.ApplicationProfile.Interfaces;
 using ComplianceService.Domain.ApplicationProfile.ValueObjects;
 using ComplianceService.Domain.Shared;
 using MediatR;
+using DomainApplication = ComplianceService.Domain.ApplicationProfile.Application;
 
 namespace ComplianceService.Application.Handlers.Commands;
 
@@ -30,7 +30,7 @@ public class RegisterApplicationCommandHandler : IRequestHandler<RegisterApplica
         }
 
         // Create application aggregate
-        var applicationResult = Application.Create(request.Name, request.Owner);
+        var applicationResult = DomainApplication.Create(request.Name, request.Owner);
         if (applicationResult.IsFailure)
         {
             return Result.Failure<ApplicationDto>(applicationResult.Error);
@@ -45,7 +45,7 @@ public class RegisterApplicationCommandHandler : IRequestHandler<RegisterApplica
         return Result.Success(MapToDto(application));
     }
 
-    private static ApplicationDto MapToDto(Application application)
+    private static ApplicationDto MapToDto(DomainApplication application)
     {
         return new ApplicationDto
         {

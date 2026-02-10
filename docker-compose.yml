@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: compliance-postgres
+    environment:
+      POSTGRES_DB: compliance_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: dev123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Open Policy Agent (OPA) Sidecar
+  opa:
+    image: openpolicyagent/opa:latest
+    container_name: compliance-opa
+    command:
+      - "run"
+      - "--server"
+      - "--addr=0.0.0.0:8181"
+      - "--log-level=debug"
+      - "/policies"
+    ports:
+      - "8181:8181"
+    volumes:
+      - ./policies:/policies:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8181/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ComplianceService API (Uncomment when ready to run)
+  # compliance-api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: compliance-api
+  #   environment:
+  #     ConnectionStrings__ComplianceDatabase: "Host=postgres;Port=5432;Database=compliance_dev;Username=postgres;Password=dev123"
+  #     OpaSettings__BaseUrl: "http://opa:8181"
+  #     ASPNETCORE_ENVIRONMENT: Development
+  #   ports:
+  #     - "5000:80"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     opa:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+
+volumes:
+  postgres-data:
+
+networks:
+  default:
+    name: compliance-network
