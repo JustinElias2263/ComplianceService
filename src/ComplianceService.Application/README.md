@@ -78,9 +78,8 @@ Commands change system state and return `Result<DTO>`.
 
 **Available Commands:**
 - `RegisterApplicationCommand` - Register new application profile
-- `AddEnvironmentConfigCommand` - Add environment to application
-- `UpdateEnvironmentConfigCommand` - Update environment configuration
-- `UpdateApplicationRiskTierCommand` - Change application risk tier
+- `AddEnvironmentConfigCommand` - Add environment to application (with risk tier)
+- `UpdateEnvironmentConfigCommand` - Update environment configuration (including risk tier)
 - `EvaluateComplianceCommand` - **Main workflow** - evaluate compliance for deployment
 
 **Command Flow:**
@@ -142,7 +141,6 @@ Commands represent **intentions to change system state**. They are immutable rec
 public record RegisterApplicationCommand : IRequest<Result<ApplicationDto>>
 {
     public required string Name { get; init; }
-    public required string RiskTier { get; init; }
     public required string Owner { get; init; }
 }
 ```
@@ -161,7 +159,6 @@ Queries represent **requests for data**. They support filtering and pagination.
 ```csharp
 public record GetAllApplicationsQuery : IRequest<Result<IReadOnlyList<ApplicationDto>>>
 {
-    public string? RiskTier { get; init; }
     public string? Owner { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 50;
@@ -274,9 +271,11 @@ public class GetAllApplicationsQueryHandler
         var applications = await _applicationRepository.GetAllAsync(cancellationToken);
 
         // 2. Apply filters
-        if (!string.IsNullOrWhiteSpace(request.RiskTier))
+        if (!string.IsNullOrWhiteSpace(request.Owner))
             applications = applications.Where(a =>
-                a.RiskTier.Value.Equals(request.RiskTier, StringComparison.OrdinalIgnoreCase));
+                a.Owner.Equals(request.Owner, StringComparison.OrdinalIgnoreCase));
+
+        // Note: RiskTier is now per-environment, not per-application
 
         // 3. Apply pagination
         var skip = (request.PageNumber - 1) * request.PageSize;
@@ -354,7 +353,7 @@ public class ComplianceEvaluationDto
 
 Validators use **FluentValidation** to validate commands/queries before handler execution.
 
-**Example:**
+**Example (RegisterApplicationCommand):**
 ```csharp
 public class RegisterApplicationCommandValidator : AbstractValidator<RegisterApplicationCommand>
 {
@@ -366,13 +365,35 @@ public class RegisterApplicationCommandValidator : AbstractValidator<RegisterApp
             .Matches("^[a-zA-Z0-9-_.]+$")
                 .WithMessage("Name can only contain letters, numbers, hyphens, underscores, dots");
 
+        RuleFor(x => x.Owner)
+            .NotEmpty().WithMessage("Owner is required")
+            .MaximumLength(200).WithMessage("Owner must not exceed 200 characters");
+    }
+}
+```
+
+**Example (AddEnvironmentConfigCommand - with RiskTier):**
+```csharp
+public class AddEnvironmentConfigCommandValidator : AbstractValidator<AddEnvironmentConfigCommand>
+{
+    public AddEnvironmentConfigCommandValidator()
+    {
+        RuleFor(x => x.ApplicationId)
+            .NotEmpty().WithMessage("Application ID is required");
+
+        RuleFor(x => x.EnvironmentName)
+            .NotEmpty().WithMessage("Environment name is required")
+            .Matches("^[a-z0-9-]+$").WithMessage("Environment name must be lowercase");
+
         RuleFor(x => x.RiskTier)
             .NotEmpty().WithMessage("Risk tier is required")
             .Must(BeValidRiskTier).WithMessage("Must be: critical, high, medium, low");
 
-        RuleFor(x => x.Owner)
-            .NotEmpty().WithMessage("Owner is required")
-            .MaximumLength(200).WithMessage("Owner must not exceed 200 characters");
+        RuleFor(x => x.SecurityTools)
+            .NotEmpty().WithMessage("At least one security tool must be specified");
+
+        RuleFor(x => x.PolicyReferences)
+            .NotEmpty().WithMessage("At least one policy must be specified");
     }
 
     private bool BeValidRiskTier(string riskTier)
@@ -729,7 +750,6 @@ public class RegisterApplicationCommandValidatorTests
         var command = new RegisterApplicationCommand
         {
             Name = "my-app",
-            RiskTier = "high",
             Owner = "team@example.com"
         };
 
@@ -741,16 +761,14 @@ public class RegisterApplicationCommandValidatorTests
     }
 
     [Theory]
-    [InlineData("", "high", "owner")] // Empty name
-    [InlineData("app", "invalid", "owner")] // Invalid risk tier
-    [InlineData("app", "high", "")] // Empty owner
-    public void Validate_InvalidCommand_FailsValidation(string name, string riskTier, string owner)
+    [InlineData("", "owner")] // Empty name
+    [InlineData("app", "")] // Empty owner
+    public void Validate_InvalidCommand_FailsValidation(string name, string owner)
     {
         // Arrange
         var command = new RegisterApplicationCommand
         {
             Name = name,
-            RiskTier = riskTier,
             Owner = owner
         };
 
@@ -779,7 +797,6 @@ public class CommandPipelineIntegrationTests : IClassFixture<ApplicationFixture>
         var command = new RegisterApplicationCommand
         {
             Name = "test-app",
-            RiskTier = "medium",
             Owner = "test@example.com"
         };
 
@@ -946,11 +963,18 @@ private static ApplicationDto MapToDto(Application application)
     {
         Id = application.Id,
         Name = application.Name,
-        RiskTier = application.RiskTier.Value, // Extract from value object
+        Owner = application.Owner,
         Environments = application.Environments.Select(e => new EnvironmentConfigDto
         {
-            // Map nested objects
-        }).ToList()
+            Id = e.Id,
+            Name = e.Name,
+            RiskTier = e.RiskTier.Value, // Extract from environment, not application
+            SecurityTools = e.SecurityTools.Select(t => t.Value).ToList(),
+            PolicyReferences = e.PolicyReferences.Select(p => p.PackageName).ToList(),
+            IsActive = e.IsActive
+        }).ToList(),
+        CreatedAt = application.CreatedAt,
+        UpdatedAt = application.UpdatedAt
     };
 }
 ```
