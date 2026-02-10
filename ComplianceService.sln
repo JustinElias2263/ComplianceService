@@ -9,6 +9,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Applicati
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Infrastructure", "src\ComplianceService.Infrastructure\ComplianceService.Infrastructure.csproj", "{4A0D1F3C-3456-6789-01CD-EF0123456789}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Api", "src\ComplianceService.Api\ComplianceService.Api.csproj", "{F5F5F5F5-5555-5555-5555-555555555555}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Domain.Tests", "tests\ComplianceService.Domain.Tests\ComplianceService.Domain.Tests.csproj", "{D1D1D1D1-1111-1111-1111-111111111111}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Application.Tests", "tests\ComplianceService.Application.Tests\ComplianceService.Application.Tests.csproj", "{A2A2A2A2-2222-2222-2222-222222222222}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Api.Tests", "tests\ComplianceService.Api.Tests\ComplianceService.Api.Tests.csproj", "{A3A3A3A3-3333-3333-3333-333333333333}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +35,22 @@ Global
 		{4A0D1F3C-3456-6789-01CD-EF0123456789}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4A0D1F3C-3456-6789-01CD-EF0123456789}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4A0D1F3C-3456-6789-01CD-EF0123456789}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5F5F5F5-5555-5555-5555-555555555555}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5F5F5F5-5555-5555-5555-555555555555}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5F5F5F5-5555-5555-5555-555555555555}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5F5F5F5-5555-5555-5555-555555555555}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1D1D1D1-1111-1111-1111-111111111111}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1D1D1D1-1111-1111-1111-111111111111}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1D1D1D1-1111-1111-1111-111111111111}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1D1D1D1-1111-1111-1111-111111111111}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2A2A2A2-2222-2222-2222-222222222222}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2A2A2A2-2222-2222-2222-222222222222}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2A2A2A2-2222-2222-2222-222222222222}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2A2A2A2-2222-2222-2222-222222222222}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3A3A3A3-3333-3333-3333-333333333333}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3A3A3A3-3333-3333-3333-333333333333}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3A3A3A3-3333-3333-3333-333333333333}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3A3A3A3-3333-3333-3333-333333333333}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -35,5 +59,3 @@ Global
 		SolutionGuid = {3C861FAB-FBBF-48A7-A413-5A21DBE40F5B}
 	EndGlobalSection
 EndGlobal
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Api", "src\ComplianceService.Api\ComplianceService.Api.csproj", "{F5F5F5F5-5555-5555-5555-555555555555}"
-EndProject
