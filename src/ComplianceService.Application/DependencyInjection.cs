@@ -27,4 +27,12 @@ public static class DependencyInjection
 
         return services;
     }
+
+    /// <summary>
+    /// Alias for AddApplicationServices - Registers Application layer services with the DI container
+    /// </summary>
+    public static IServiceCollection AddApplication(this IServiceCollection services)
+    {
+        return services.AddApplicationServices();
+    }
 }

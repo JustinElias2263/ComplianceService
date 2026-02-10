@@ -90,7 +90,7 @@ if (app.Environment.IsDevelopment())
     // WARNING: Do not use in production!
     try
     {
-        DependencyInjection.ApplyMigrations(app.Services);
+        ComplianceService.Infrastructure.DependencyInjection.ApplyMigrations(app.Services);
         Log.Information("Database migrations applied successfully");
     }
     catch (Exception ex)

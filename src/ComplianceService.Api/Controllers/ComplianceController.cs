@@ -57,7 +57,7 @@ public class ComplianceController : ControllerBase
 
         var evaluation = result.Value;
 
-        if (evaluation.Decision.Allowed)
+        if (evaluation.PolicyDecision.Allow)
         {
             _logger.LogInformation(
                 "Compliance evaluation passed for application {ApplicationId} in {Environment}",
@@ -70,7 +70,7 @@ public class ComplianceController : ControllerBase
                 "Compliance evaluation BLOCKED for application {ApplicationId} in {Environment}. Violations: {ViolationCount}",
                 command.ApplicationId,
                 command.Environment,
-                evaluation.Decision.Violations.Count);
+                evaluation.PolicyDecision.Violations.Count);
         }
 
         return Ok(evaluation);
