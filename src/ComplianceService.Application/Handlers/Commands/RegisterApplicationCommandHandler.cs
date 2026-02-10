@@ -23,8 +23,8 @@ public class RegisterApplicationCommandHandler : IRequestHandler<RegisterApplica
     public async Task<Result<ApplicationDto>> Handle(RegisterApplicationCommand request, CancellationToken cancellationToken)
     {
         // Check if application already exists
-        var existing = await _applicationRepository.GetByNameAsync(request.Name, cancellationToken);
-        if (existing != null)
+        var existingResult = await _applicationRepository.GetByNameAsync(request.Name, cancellationToken);
+        if (existingResult.IsSuccess)
         {
             return Result.Failure<ApplicationDto>($"Application with name '{request.Name}' already exists");
         }

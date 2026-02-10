@@ -35,14 +35,19 @@ public class GetComplianceEvaluationQueryHandler : IRequestHandler<GetCompliance
         var evaluation = evaluationResult.Value;
 
         // Get application to retrieve name
-        var application = await _applicationRepository.GetByIdAsync(evaluation.ApplicationId, cancellationToken);
-        var applicationName = application?.Name ?? "Unknown";
+        var applicationResult = await _applicationRepository.GetByIdAsync(evaluation.ApplicationId, cancellationToken);
+        var applicationName = applicationResult.IsSuccess ? applicationResult.Value.Name : "Unknown";
 
         // Get policy package from environment config
-        var environmentResult = application?.GetEnvironment(evaluation.Environment);
-        var policyPackage = environmentResult?.IsSuccess == true
-            ? environmentResult.Value.Policies.FirstOrDefault()?.PackageName ?? "compliance.default"
-            : "compliance.default";
+        string policyPackage = "compliance.default";
+        if (applicationResult.IsSuccess)
+        {
+            var environmentResult = applicationResult.Value.GetEnvironment(evaluation.Environment);
+            if (environmentResult.IsSuccess)
+            {
+                policyPackage = environmentResult.Value.Policies.FirstOrDefault()?.PackageName ?? "compliance.default";
+            }
+        }
 
         return Result.Success(new ComplianceEvaluationDto
         {

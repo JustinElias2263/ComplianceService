@@ -20,12 +20,14 @@ public class GetApplicationByIdQueryHandler : IRequestHandler<GetApplicationById
 
     public async Task<Result<ApplicationDto>> Handle(GetApplicationByIdQuery request, CancellationToken cancellationToken)
     {
-        var application = await _applicationRepository.GetByIdAsync(request.ApplicationId, cancellationToken);
+        var applicationResult = await _applicationRepository.GetByIdAsync(request.ApplicationId, cancellationToken);
 
-        if (application == null)
+        if (applicationResult.IsFailure)
         {
-            return Result.Failure<ApplicationDto>($"Application with ID '{request.ApplicationId}' not found");
+            return Result.Failure<ApplicationDto>(applicationResult.Error);
         }
+
+        var application = applicationResult.Value;
 
         return Result.Success(new ApplicationDto
         {

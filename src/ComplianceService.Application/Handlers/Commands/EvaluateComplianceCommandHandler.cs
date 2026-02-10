@@ -43,11 +43,13 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
     public async Task<Result<ComplianceEvaluationDto>> Handle(EvaluateComplianceCommand request, CancellationToken cancellationToken)
     {
         // 1. Get application and environment config
-        var application = await _applicationRepository.GetByIdAsync(request.ApplicationId, cancellationToken);
-        if (application == null)
+        var applicationResult = await _applicationRepository.GetByIdAsync(request.ApplicationId, cancellationToken);
+        if (applicationResult.IsFailure)
         {
-            return Result.Failure<ComplianceEvaluationDto>($"Application with ID '{request.ApplicationId}' not found");
+            return Result.Failure<ComplianceEvaluationDto>(applicationResult.Error);
         }
+
+        var application = applicationResult.Value;
 
         var environmentResult = application.GetEnvironment(request.Environment);
         if (environmentResult.IsFailure)
@@ -157,30 +159,32 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
         await _evaluationRepository.SaveChangesAsync(cancellationToken);
 
         // 7. Create audit log
-        var completeEvidence = JsonSerializer.Serialize(new
-        {
-            Application = opaInput.Application,
-            ScanResults = request.ScanResults,
-            OpaDecision = opaDecision,
-            Metadata = request.Metadata
-        });
+        var scanResultsJson = JsonSerializer.Serialize(request.ScanResults);
+        var policyInputJson = JsonSerializer.Serialize(opaInput);
+        var policyOutputJson = JsonSerializer.Serialize(opaDecision);
 
-        var evidenceResult = DecisionEvidence.Create(completeEvidence);
+        var evidenceResult = DecisionEvidence.Create(scanResultsJson, policyInputJson, policyOutputJson);
         if (evidenceResult.IsFailure)
         {
             return Result.Failure<ComplianceEvaluationDto>(evidenceResult.Error);
         }
 
         var auditLogResult = AuditLog.Create(
-            evaluation.Id,
+            evaluation.Id.ToString(),
+            application.Id,
             application.Name,
-            request.Environment,
-            policyDecisionResult.Value,
-            evaluation.GetTotalVulnerabilityCount(),
+            evaluation.Environment,
+            evaluation.RiskTier,
+            policyDecisionResult.Value.Allowed,
+            policyDecisionResult.Value.GetReason(),
+            policyDecisionResult.Value.Violations,
+            evidenceResult.Value,
+            policyDecisionResult.Value.EvaluationDurationMs,
             evaluation.GetCriticalVulnerabilityCount(),
             evaluation.GetHighVulnerabilityCount(),
-            request.InitiatedBy,
-            evidenceResult.Value);
+            evaluation.GetMediumVulnerabilityCount(),
+            evaluation.GetLowVulnerabilityCount(),
+            evaluation.EvaluatedAt);
 
         if (auditLogResult.IsFailure)
         {

@@ -20,12 +20,14 @@ public class GetApplicationByNameQueryHandler : IRequestHandler<GetApplicationBy
 
     public async Task<Result<ApplicationDto>> Handle(GetApplicationByNameQuery request, CancellationToken cancellationToken)
     {
-        var application = await _applicationRepository.GetByNameAsync(request.Name, cancellationToken);
+        var applicationResult = await _applicationRepository.GetByNameAsync(request.Name, cancellationToken);
 
-        if (application == null)
+        if (applicationResult.IsFailure)
         {
-            return Result.Failure<ApplicationDto>($"Application with name '{request.Name}' not found");
+            return Result.Failure<ApplicationDto>(applicationResult.Error);
         }
+
+        var application = applicationResult.Value;
 
         return Result.Success(new ApplicationDto
         {
