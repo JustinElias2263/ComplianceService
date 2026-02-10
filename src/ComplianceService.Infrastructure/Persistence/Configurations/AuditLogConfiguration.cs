@@ -71,23 +71,28 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(a => a.EvaluationDurationMs)
             .IsRequired();
 
-        // Store Evidence as JSON (entire evaluation evidence)
-        builder.Property(a => a.Evidence)
-            .HasConversion(
-                v => JsonSerializer.Serialize(new
-                {
-                    ScanResultsJson = v.ScanResultsJson,
-                    PolicyInputJson = v.PolicyInputJson,
-                    PolicyOutputJson = v.PolicyOutputJson,
-                    CapturedAt = v.CapturedAt
-                }, (JsonSerializerOptions?)null),
-                v => DecisionEvidence.Create(
-                    JsonDocument.Parse(v).RootElement.GetProperty("ScanResultsJson").GetString()!,
-                    JsonDocument.Parse(v).RootElement.GetProperty("PolicyInputJson").GetString()!,
-                    JsonDocument.Parse(v).RootElement.GetProperty("PolicyOutputJson").GetString()!).Value)
-            .IsRequired()
-            .HasColumnType("jsonb") // PostgreSQL JSONB for efficient querying
-            .HasColumnName("Evidence");
+        // Store Evidence as owned entity with separate columns
+        builder.OwnsOne(a => a.Evidence, evidence =>
+        {
+            evidence.Property(e => e.ScanResultsJson)
+                .HasColumnName("EvidenceScanResults")
+                .HasColumnType("jsonb")
+                .IsRequired();
+
+            evidence.Property(e => e.PolicyInputJson)
+                .HasColumnName("EvidencePolicyInput")
+                .HasColumnType("jsonb")
+                .IsRequired();
+
+            evidence.Property(e => e.PolicyOutputJson)
+                .HasColumnName("EvidencePolicyOutput")
+                .HasColumnType("jsonb")
+                .IsRequired();
+
+            evidence.Property(e => e.CapturedAt)
+                .HasColumnName("EvidenceCapturedAt")
+                .IsRequired();
+        });
 
         // Indexes for audit log queries
         builder.HasIndex(a => a.ApplicationName);
