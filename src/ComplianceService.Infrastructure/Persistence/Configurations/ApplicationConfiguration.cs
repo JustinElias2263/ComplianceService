@@ -1,4 +1,4 @@
-using ComplianceService.Domain.ApplicationProfile;
+using DomainApplication = ComplianceService.Domain.ApplicationProfile.Application;
 using ComplianceService.Domain.ApplicationProfile.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -8,9 +8,9 @@ namespace ComplianceService.Infrastructure.Persistence.Configurations;
 /// <summary>
 /// Entity Framework Core configuration for Application aggregate root
 /// </summary>
-public class ApplicationConfiguration : IEntityTypeConfiguration<Application>
+public class ApplicationConfiguration : IEntityTypeConfiguration<DomainApplication>
 {
-    public void Configure(EntityTypeBuilder<Application> builder)
+    public void Configure(EntityTypeBuilder<DomainApplication> builder)
     {
         builder.ToTable("Applications");
 

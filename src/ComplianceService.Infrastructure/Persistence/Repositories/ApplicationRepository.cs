@@ -1,6 +1,7 @@
-using ComplianceService.Domain.ApplicationProfile;
+using DomainApplication = ComplianceService.Domain.ApplicationProfile.Application;
 using ComplianceService.Domain.ApplicationProfile.Interfaces;
 using ComplianceService.Domain.ApplicationProfile.ValueObjects;
+using ComplianceService.Domain.Shared;
 using Microsoft.EntityFrameworkCore;
 
 namespace ComplianceService.Infrastructure.Persistence.Repositories;
@@ -17,21 +18,29 @@ public class ApplicationRepository : IApplicationRepository
         _context = context;
     }
 
-    public async Task<Application?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result<DomainApplication>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await _context.Applications
+        var application = await _context.Applications
             .Include(a => a.Environments)
             .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+
+        return application is null
+            ? Result.Failure<DomainApplication>("Application not found")
+            : Result.Success(application);
     }
 
-    public async Task<Application?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<Result<DomainApplication>> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
-        return await _context.Applications
+        var application = await _context.Applications
             .Include(a => a.Environments)
             .FirstOrDefaultAsync(a => a.Name == name, cancellationToken);
+
+        return application is null
+            ? Result.Failure<DomainApplication>("Application not found")
+            : Result.Success(application);
     }
 
-    public async Task<IReadOnlyList<Application>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<DomainApplication>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _context.Applications
             .Include(a => a.Environments)
@@ -39,48 +48,16 @@ public class ApplicationRepository : IApplicationRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Application>> GetByOwnerAsync(string owner, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<DomainApplication>> GetByRiskTierAsync(string riskTier, CancellationToken cancellationToken = default)
     {
         return await _context.Applications
             .Include(a => a.Environments)
-            .Where(a => a.Owner == owner)
+            .Where(a => a.Environments.Any(e => e.RiskTier.Value == riskTier.ToLowerInvariant()))
             .OrderBy(a => a.Name)
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Application>> GetActiveApplicationsAsync(CancellationToken cancellationToken = default)
-    {
-        return await _context.Applications
-            .Include(a => a.Environments)
-            .Where(a => a.IsActive)
-            .OrderBy(a => a.Name)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task AddAsync(Application application, CancellationToken cancellationToken = default)
-    {
-        await _context.Applications.AddAsync(application, cancellationToken);
-    }
-
-    public Task UpdateAsync(Application application, CancellationToken cancellationToken = default)
-    {
-        _context.Applications.Update(application);
-        return Task.CompletedTask;
-    }
-
-    public Task DeleteAsync(Application application, CancellationToken cancellationToken = default)
-    {
-        _context.Applications.Remove(application);
-        return Task.CompletedTask;
-    }
-
-    public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        return await _context.Applications
-            .AnyAsync(a => a.Id == id, cancellationToken);
-    }
-
-    public async Task<bool> NameExistsAsync(string name, Guid? excludeId = null, CancellationToken cancellationToken = default)
+    public async Task<bool> IsNameUniqueAsync(string name, Guid? excludeId = null, CancellationToken cancellationToken = default)
     {
         var query = _context.Applications.Where(a => a.Name == name);
 
@@ -89,16 +66,58 @@ public class ApplicationRepository : IApplicationRepository
             query = query.Where(a => a.Id != excludeId.Value);
         }
 
-        return await query.AnyAsync(cancellationToken);
+        return !await query.AnyAsync(cancellationToken);
     }
 
-    public async Task<int> GetTotalCountAsync(CancellationToken cancellationToken = default)
+    public async Task<Result> AddAsync(DomainApplication application, CancellationToken cancellationToken = default)
     {
-        return await _context.Applications.CountAsync(cancellationToken);
+        try
+        {
+            await _context.Applications.AddAsync(application, cancellationToken);
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Failed to add application: {ex.Message}");
+        }
     }
 
-    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    public Task<Result> UpdateAsync(DomainApplication application, CancellationToken cancellationToken = default)
     {
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            _context.Applications.Update(application);
+            return Task.FromResult(Result.Success());
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(Result.Failure($"Failed to update application: {ex.Message}"));
+        }
+    }
+
+    public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var application = await _context.Applications.FindAsync(new object[] { id }, cancellationToken);
+
+        if (application is null)
+        {
+            return Result.Failure("Application not found");
+        }
+
+        try
+        {
+            application.Deactivate();
+            _context.Applications.Update(application);
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Failed to delete application: {ex.Message}");
+        }
+    }
+
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.SaveChangesAsync(cancellationToken);
     }
 }
