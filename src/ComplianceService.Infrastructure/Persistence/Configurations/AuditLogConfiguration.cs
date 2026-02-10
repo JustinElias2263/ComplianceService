@@ -21,6 +21,9 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(a => a.EvaluationId)
             .IsRequired();
 
+        builder.Property(a => a.ApplicationId)
+            .IsRequired();
+
         builder.Property(a => a.ApplicationName)
             .IsRequired()
             .HasMaxLength(100);
@@ -29,10 +32,10 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
             .IsRequired()
             .HasMaxLength(50);
 
-        builder.Property(a => a.Timestamp)
+        builder.Property(a => a.EvaluatedAt)
             .IsRequired();
 
-        builder.Property(a => a.DecisionAllow)
+        builder.Property(a => a.Allowed)
             .IsRequired();
 
         // Store Violations as JSON array
@@ -42,11 +45,7 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 
         builder.Ignore(a => a.Violations);
 
-        builder.Property(a => a.PolicyPackage)
-            .IsRequired()
-            .HasMaxLength(200);
-
-        builder.Property(a => a.TotalVulnerabilities)
+        builder.Property(a => a.TotalVulnerabilityCount)
             .IsRequired();
 
         builder.Property(a => a.CriticalCount)
@@ -55,31 +54,44 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(a => a.HighCount)
             .IsRequired();
 
-        builder.Property(a => a.InitiatedBy)
-            .IsRequired()
-            .HasMaxLength(200);
+        builder.Property(a => a.MediumCount)
+            .IsRequired();
 
-        // Store CompleteEvidence as JSON (entire evaluation evidence)
-        builder.Property(a => a.CompleteEvidence)
+        builder.Property(a => a.LowCount)
+            .IsRequired();
+
+        builder.Property(a => a.RiskTier)
+            .IsRequired()
+            .HasMaxLength(20);
+
+        builder.Property(a => a.Reason)
+            .IsRequired()
+            .HasMaxLength(500);
+
+        builder.Property(a => a.EvaluationDurationMs)
+            .IsRequired();
+
+        // Store Evidence as JSON (entire evaluation evidence)
+        builder.Property(a => a.Evidence)
             .HasConversion(
                 v => v.JsonData,
                 v => DecisionEvidence.Create(v).Value)
             .IsRequired()
             .HasColumnType("jsonb") // PostgreSQL JSONB for efficient querying
-            .HasColumnName("CompleteEvidence");
+            .HasColumnName("Evidence");
 
         // Indexes for audit log queries
         builder.HasIndex(a => a.ApplicationName);
         builder.HasIndex(a => a.Environment);
-        builder.HasIndex(a => a.Timestamp);
-        builder.HasIndex(a => a.DecisionAllow);
+        builder.HasIndex(a => a.EvaluatedAt);
+        builder.HasIndex(a => a.Allowed);
         builder.HasIndex(a => a.EvaluationId);
 
         // Composite index for date range queries
-        builder.HasIndex(a => new { a.ApplicationName, a.Environment, a.Timestamp });
+        builder.HasIndex(a => new { a.ApplicationName, a.Environment, a.EvaluatedAt });
 
         // Table partitioning hint (PostgreSQL - implemented at database level)
-        builder.ToTable(t => t.HasComment("Partitioned by Timestamp (monthly) for scalability"));
+        builder.ToTable(t => t.HasComment("Partitioned by EvaluatedAt (monthly) for scalability"));
 
         // Ignore domain events
         builder.Ignore(a => a.DomainEvents);
