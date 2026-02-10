@@ -35,3 +35,5 @@ Global
 		SolutionGuid = {3C861FAB-FBBF-48A7-A413-5A21DBE40F5B}
 	EndGlobalSection
 EndGlobal
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Api", "src\ComplianceService.Api\ComplianceService.Api.csproj", "{F5F5F5F5-5555-5555-5555-555555555555}"
+EndProject
