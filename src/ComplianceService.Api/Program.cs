@@ -38,8 +38,7 @@ builder.Services.AddSwaggerGen(options =>
         Description = "Policy Gateway for CI/CD Pipeline Compliance",
         Contact = new()
         {
-            Name = "DevSecOps Team",
-            Email = "devsecops@example.com"
+            Name = "DevOps Engineering"
         }
     });
 
