@@ -1,4 +1,4 @@
-using ComplianceService.Domain.ApplicationProfile;
+using DomainApplication = ComplianceService.Domain.ApplicationProfile.Application;
 using ComplianceService.Domain.Audit;
 using ComplianceService.Domain.Evaluation;
 using ComplianceService.Infrastructure.Persistence.Configurations;
@@ -17,7 +17,7 @@ public class ApplicationDbContext : DbContext
     }
 
     // DbSets for aggregate roots
-    public DbSet<Application> Applications => Set<Application>();
+    public DbSet<DomainApplication> Applications => Set<DomainApplication>();
     public DbSet<ComplianceEvaluation> ComplianceEvaluations => Set<ComplianceEvaluation>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
