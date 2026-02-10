@@ -44,7 +44,7 @@ public class GetApplicationByNameQueryHandler : IRequestHandler<GetApplicationBy
                 IsActive = application.IsActive
             }).ToList(),
             CreatedAt = application.CreatedAt,
-            UpdatedAt = application.UpdatedAt
+            UpdatedAt = application.UpdatedAt.GetValueOrDefault(application.CreatedAt)
         });
     }
 }
