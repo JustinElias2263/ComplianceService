@@ -74,8 +74,17 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         // Store Evidence as JSON (entire evaluation evidence)
         builder.Property(a => a.Evidence)
             .HasConversion(
-                v => v.JsonData,
-                v => DecisionEvidence.Create(v).Value)
+                v => JsonSerializer.Serialize(new
+                {
+                    ScanResultsJson = v.ScanResultsJson,
+                    PolicyInputJson = v.PolicyInputJson,
+                    PolicyOutputJson = v.PolicyOutputJson,
+                    CapturedAt = v.CapturedAt
+                }, (JsonSerializerOptions?)null),
+                v => DecisionEvidence.Create(
+                    JsonDocument.Parse(v).RootElement.GetProperty("ScanResultsJson").GetString()!,
+                    JsonDocument.Parse(v).RootElement.GetProperty("PolicyInputJson").GetString()!,
+                    JsonDocument.Parse(v).RootElement.GetProperty("PolicyOutputJson").GetString()!).Value)
             .IsRequired()
             .HasColumnType("jsonb") // PostgreSQL JSONB for efficient querying
             .HasColumnName("Evidence");
