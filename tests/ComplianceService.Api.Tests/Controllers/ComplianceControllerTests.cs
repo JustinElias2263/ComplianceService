@@ -31,17 +31,12 @@ public class ComplianceControllerTests : IClassFixture<TestWebApplicationFactory
 
         // Mock OPA to allow clean scans
         _factory.MockOpaClient
-            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new OpaDecisionDto
             {
                 Allow = true,
-                Violations = new List<string>(),
-                Details = new Dictionary<string, object>
-                {
-                    ["message"] = "All compliance checks passed",
-                    ["criticalCount"] = 0,
-                    ["highCount"] = 0
-                }
+                Violations = new List<PolicyViolationDto>(),
+                Reason = "All compliance checks passed"
             });
 
         var command = TestDataGenerator.CreateCleanScan(app.Id, "production");
@@ -54,9 +49,9 @@ public class ComplianceControllerTests : IClassFixture<TestWebApplicationFactory
 
         var evaluation = await response.Content.ReadFromJsonAsync<ComplianceEvaluationDto>();
         evaluation.Should().NotBeNull();
-        evaluation!.IsBlocked.Should().BeFalse();
+        evaluation!.Passed.Should().BeTrue();
         evaluation.PolicyDecision.Allow.Should().BeTrue();
-        evaluation.TotalVulnerabilityCount.Should().Be(0);
+        evaluation.AggregatedCounts.Total.Should().Be(0);
     }
 
     [Fact]
@@ -67,21 +62,26 @@ public class ComplianceControllerTests : IClassFixture<TestWebApplicationFactory
 
         // Mock OPA to block critical vulnerabilities
         _factory.MockOpaClient
-            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new OpaDecisionDto
             {
                 Allow = false,
-                Violations = new List<string>
+                Violations = new List<PolicyViolationDto>
                 {
-                    "Critical vulnerabilities detected: 2",
-                    "Production deployments require zero critical vulnerabilities"
+                    new PolicyViolationDto
+                    {
+                        Rule = "critical_vulnerabilities_check",
+                        Message = "Critical vulnerabilities detected: 2",
+                        Severity = "critical"
+                    },
+                    new PolicyViolationDto
+                    {
+                        Rule = "production_requirements",
+                        Message = "Production deployments require zero critical vulnerabilities",
+                        Severity = "critical"
+                    }
                 },
-                Details = new Dictionary<string, object>
-                {
-                    ["criticalCount"] = 2,
-                    ["highCount"] = 0,
-                    ["riskTier"] = "critical"
-                }
+                Reason = "Critical vulnerabilities block production deployment"
             });
 
         var command = TestDataGenerator.CreateScanWithCriticalVulnerabilities(app.Id, "production", 2);
@@ -94,10 +94,10 @@ public class ComplianceControllerTests : IClassFixture<TestWebApplicationFactory
 
         var evaluation = await response.Content.ReadFromJsonAsync<ComplianceEvaluationDto>();
         evaluation.Should().NotBeNull();
-        evaluation!.IsBlocked.Should().BeTrue();
+        evaluation!.Passed.Should().BeFalse();
         evaluation.PolicyDecision.Allow.Should().BeFalse();
         evaluation.PolicyDecision.Violations.Should().HaveCount(2);
-        evaluation.CriticalVulnerabilityCount.Should().Be(2);
+        evaluation.AggregatedCounts.Critical.Should().Be(2);
     }
 
     [Fact]
@@ -108,18 +108,12 @@ public class ComplianceControllerTests : IClassFixture<TestWebApplicationFactory
 
         // Mock OPA to allow limited high vulnerabilities in staging
         _factory.MockOpaClient
-            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new OpaDecisionDto
             {
                 Allow = true,
-                Violations = new List<string>(),
-                Details = new Dictionary<string, object>
-                {
-                    ["message"] = "Within acceptable threshold for staging",
-                    ["criticalCount"] = 0,
-                    ["highCount"] = 2,
-                    ["highLimit"] = 3
-                }
+                Violations = new List<PolicyViolationDto>(),
+                Reason = "Within acceptable threshold for staging"
             });
 
         var command = TestDataGenerator.CreateScanWithHighVulnerabilities(app.Id, "staging", 2);
@@ -132,8 +126,8 @@ public class ComplianceControllerTests : IClassFixture<TestWebApplicationFactory
 
         var evaluation = await response.Content.ReadFromJsonAsync<ComplianceEvaluationDto>();
         evaluation.Should().NotBeNull();
-        evaluation!.IsBlocked.Should().BeFalse();
-        evaluation.HighVulnerabilityCount.Should().Be(2);
+        evaluation!.Passed.Should().BeTrue();
+        evaluation.AggregatedCounts.High.Should().Be(2);
     }
 
     [Fact]
@@ -144,18 +138,12 @@ public class ComplianceControllerTests : IClassFixture<TestWebApplicationFactory
 
         // Mock OPA to be permissive for development
         _factory.MockOpaClient
-            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new OpaDecisionDto
             {
                 Allow = true,
-                Violations = new List<string>(),
-                Details = new Dictionary<string, object>
-                {
-                    ["message"] = "Development environment - permissive policy",
-                    ["criticalCount"] = 1,
-                    ["highCount"] = 5,
-                    ["mediumCount"] = 10
-                }
+                Violations = new List<PolicyViolationDto>(),
+                Reason = "Development environment - permissive policy"
             });
 
         var command = TestDataGenerator.CreateScanWithMediumLowVulnerabilities(app.Id, "development");
@@ -168,7 +156,7 @@ public class ComplianceControllerTests : IClassFixture<TestWebApplicationFactory
 
         var evaluation = await response.Content.ReadFromJsonAsync<ComplianceEvaluationDto>();
         evaluation.Should().NotBeNull();
-        evaluation!.IsBlocked.Should().BeFalse();
+        evaluation!.Passed.Should().BeTrue();
         evaluation.PolicyDecision.Allow.Should().BeTrue();
     }
 
@@ -180,16 +168,12 @@ public class ComplianceControllerTests : IClassFixture<TestWebApplicationFactory
 
         // Mock OPA decision
         _factory.MockOpaClient
-            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new OpaDecisionDto
             {
                 Allow = true,
-                Violations = new List<string>(),
-                Details = new Dictionary<string, object>
-                {
-                    ["message"] = "All tools passed",
-                    ["toolsExecuted"] = new[] { "snyk", "prismacloud" }
-                }
+                Violations = new List<PolicyViolationDto>(),
+                Reason = "All tools passed"
             });
 
         var command = TestDataGenerator.CreateMultiToolScan(app.Id, "production");
@@ -203,8 +187,8 @@ public class ComplianceControllerTests : IClassFixture<TestWebApplicationFactory
         var evaluation = await response.Content.ReadFromJsonAsync<ComplianceEvaluationDto>();
         evaluation.Should().NotBeNull();
         evaluation!.ScanResults.Should().HaveCount(2);
-        evaluation.ScanResults.Should().Contain(sr => sr.Tool == "snyk");
-        evaluation.ScanResults.Should().Contain(sr => sr.Tool == "prismacloud");
+        evaluation.ScanResults.Should().Contain(sr => sr.ToolName == "snyk");
+        evaluation.ScanResults.Should().Contain(sr => sr.ToolName == "prismacloud");
     }
 
     [Fact]
@@ -215,21 +199,12 @@ public class ComplianceControllerTests : IClassFixture<TestWebApplicationFactory
 
         // Mock realistic OPA decision
         _factory.MockOpaClient
-            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new OpaDecisionDto
             {
                 Allow = true,
-                Violations = new List<string>(),
-                Details = new Dictionary<string, object>
-                {
-                    ["policyEvaluatedAt"] = DateTime.UtcNow,
-                    ["policyPackage"] = "compliance/cicd/production",
-                    ["criticalCount"] = 0,
-                    ["highCount"] = 0,
-                    ["mediumCount"] = 0,
-                    ["lowCount"] = 2,
-                    ["requiredToolsPresent"] = true
-                }
+                Violations = new List<PolicyViolationDto>(),
+                Reason = "All compliance checks passed for production deployment"
             });
 
         var command = TestDataGenerator.CreateRealisticProductionDeployment(app.Id);
@@ -242,10 +217,10 @@ public class ComplianceControllerTests : IClassFixture<TestWebApplicationFactory
 
         var evaluation = await response.Content.ReadFromJsonAsync<ComplianceEvaluationDto>();
         evaluation.Should().NotBeNull();
-        evaluation!.IsBlocked.Should().BeFalse();
+        evaluation!.Passed.Should().BeTrue();
         evaluation.ApplicationId.Should().Be(app.Id);
         evaluation.Environment.Should().Be("production");
-        evaluation.LowVulnerabilityCount.Should().Be(2);
+        evaluation.AggregatedCounts.Low.Should().Be(2);
     }
 
     [Fact]
@@ -255,11 +230,11 @@ public class ComplianceControllerTests : IClassFixture<TestWebApplicationFactory
         var app = await RegisterApplicationWithEnvironment("DataPipeline", "production", "critical");
 
         _factory.MockOpaClient
-            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new OpaDecisionDto
             {
                 Allow = true,
-                Violations = new List<string>()
+                Violations = new List<PolicyViolationDto>()
             });
 
         var evaluateCommand = TestDataGenerator.CreateCleanScan(app.Id, "production");
@@ -284,11 +259,11 @@ public class ComplianceControllerTests : IClassFixture<TestWebApplicationFactory
         var app = await RegisterApplicationWithEnvironment("MLService", "production", "critical");
 
         _factory.MockOpaClient
-            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.EvaluatePolicyAsync(It.IsAny<OpaInputDto>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new OpaDecisionDto
             {
                 Allow = true,
-                Violations = new List<string>()
+                Violations = new List<PolicyViolationDto>()
             });
 
         // Create 3 evaluations
