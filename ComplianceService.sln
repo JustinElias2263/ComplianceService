@@ -1,13 +1,14 @@
-
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36915.13 d17.14
+VisualStudioVersion = 17.14.36915.13
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Domain", "src\ComplianceService.Domain\ComplianceService.Domain.csproj", "{2E8B9F1A-1234-4567-89AB-CDEF01234567}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Application", "src\ComplianceService.Application\ComplianceService.Application.csproj", "{3F9C0E2B-2345-5678-90BC-DEF012345678}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Infrastructure", "src\ComplianceService.Infrastructure\ComplianceService.Infrastructure.csproj", "{4A0D1F3C-3456-6789-01CD-EF0123456789}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Api", "src\ComplianceService.Api\ComplianceService.Api.csproj", "{F5F5F5F5-5555-5555-5555-555555555555}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +28,10 @@ Global
 		{4A0D1F3C-3456-6789-01CD-EF0123456789}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4A0D1F3C-3456-6789-01CD-EF0123456789}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4A0D1F3C-3456-6789-01CD-EF0123456789}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5F5F5F5-5555-5555-5555-555555555555}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5F5F5F5-5555-5555-5555-555555555555}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5F5F5F5-5555-5555-5555-555555555555}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5F5F5F5-5555-5555-5555-555555555555}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -35,5 +40,3 @@ Global
 		SolutionGuid = {3C861FAB-FBBF-48A7-A413-5A21DBE40F5B}
 	EndGlobalSection
 EndGlobal
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Api", "src\ComplianceService.Api\ComplianceService.Api.csproj", "{F5F5F5F5-5555-5555-5555-555555555555}"
-EndProject
