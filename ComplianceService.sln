@@ -10,6 +10,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Infrastru
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Api", "src\ComplianceService.Api\ComplianceService.Api.csproj", "{F5F5F5F5-5555-5555-5555-555555555555}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Application.Tests", "tests\ComplianceService.Application.Tests\ComplianceService.Application.Tests.csproj", "{3D27D92C-8BEB-ABC9-3785-C5A30A91187E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComplianceService.Domain.Tests", "tests\ComplianceService.Domain.Tests\ComplianceService.Domain.Tests.csproj", "{BD7AE2F0-D136-145F-144B-96B741BC13EC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +36,14 @@ Global
 		{F5F5F5F5-5555-5555-5555-555555555555}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F5F5F5F5-5555-5555-5555-555555555555}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F5F5F5F5-5555-5555-5555-555555555555}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D27D92C-8BEB-ABC9-3785-C5A30A91187E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D27D92C-8BEB-ABC9-3785-C5A30A91187E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D27D92C-8BEB-ABC9-3785-C5A30A91187E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D27D92C-8BEB-ABC9-3785-C5A30A91187E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD7AE2F0-D136-145F-144B-96B741BC13EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD7AE2F0-D136-145F-144B-96B741BC13EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD7AE2F0-D136-145F-144B-96B741BC13EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD7AE2F0-D136-145F-144B-96B741BC13EC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
