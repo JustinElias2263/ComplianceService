@@ -1,5 +1,6 @@
 using ComplianceService.Application.Commands;
 using ComplianceService.Application.DTOs;
+using ComplianceService.Domain.ApplicationProfile.Entities;
 using ComplianceService.Domain.ApplicationProfile.Interfaces;
 using ComplianceService.Domain.ApplicationProfile.ValueObjects;
 using ComplianceService.Domain.Shared;
@@ -28,6 +29,13 @@ public class AddEnvironmentConfigCommandHandler : IRequestHandler<AddEnvironment
             return Result.Failure<ApplicationDto>($"Application with ID '{request.ApplicationId}' not found");
         }
 
+        // Create risk tier value object
+        var riskTierResult = RiskTier.FromString(request.RiskTier);
+        if (riskTierResult.IsFailure)
+        {
+            return Result.Failure<ApplicationDto>(riskTierResult.Error);
+        }
+
         // Create security tool value objects
         var toolResults = request.SecurityTools
             .Select(SecurityToolType.FromString)
@@ -54,8 +62,21 @@ public class AddEnvironmentConfigCommandHandler : IRequestHandler<AddEnvironment
 
         var policies = policyResults.Select(r => r.Value).ToList();
 
+        // Create environment config
+        var environmentConfigResult = EnvironmentConfig.Create(
+            request.ApplicationId,
+            request.EnvironmentName,
+            riskTierResult.Value,
+            tools,
+            policies);
+
+        if (environmentConfigResult.IsFailure)
+        {
+            return Result.Failure<ApplicationDto>(environmentConfigResult.Error);
+        }
+
         // Add environment to application
-        var result = application.AddEnvironment(request.EnvironmentName, tools, policies);
+        var result = application.AddEnvironment(environmentConfigResult.Value);
         if (result.IsFailure)
         {
             return Result.Failure<ApplicationDto>(result.Error);
@@ -75,12 +96,12 @@ public class AddEnvironmentConfigCommandHandler : IRequestHandler<AddEnvironment
         {
             Id = application.Id,
             Name = application.Name,
-            RiskTier = application.RiskTier.Value,
             Owner = application.Owner,
             Environments = application.Environments.Select(e => new EnvironmentConfigDto
             {
                 Id = e.Id,
                 Name = e.Name,
+                RiskTier = e.RiskTier.Value,
                 SecurityTools = e.SecurityTools.Select(t => t.Value).ToList(),
                 PolicyReferences = e.PolicyReferences.Select(p => p.PackageName).ToList(),
                 IsActive = e.IsActive

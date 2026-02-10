@@ -12,7 +12,6 @@ namespace ComplianceService.Domain.ApplicationProfile;
 public class Application : AggregateRoot<Guid>
 {
     public string Name { get; private set; }
-    public RiskTier RiskTier { get; private set; }
     public string Owner { get; private set; }
     public bool IsActive { get; private set; }
 
@@ -22,25 +21,21 @@ public class Application : AggregateRoot<Guid>
     private Application() : base()
     {
         Name = string.Empty;
-        RiskTier = ValueObjects.RiskTier.Low;
         Owner = string.Empty;
     }
 
     private Application(
         Guid id,
         string name,
-        RiskTier riskTier,
         string owner) : base(id)
     {
         Name = name;
-        RiskTier = riskTier;
         Owner = owner;
         IsActive = true;
     }
 
     public static Result<Application> Create(
         string name,
-        RiskTier riskTier,
         string owner)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -56,12 +51,11 @@ public class Application : AggregateRoot<Guid>
             return Result.Failure<Application>("Owner must be a valid email address");
 
         var id = Guid.NewGuid();
-        var application = new Application(id, name.Trim(), riskTier, owner.Trim());
+        var application = new Application(id, name.Trim(), owner.Trim());
 
         application.AddDomainEvent(new ApplicationRegisteredEvent(
             id,
             application.Name,
-            application.RiskTier.Value,
             application.Owner,
             DateTime.UtcNow));
 
@@ -118,15 +112,6 @@ public class Application : AggregateRoot<Guid>
         MarkAsUpdated();
 
         return Result.Success();
-    }
-
-    public void UpdateRiskTier(RiskTier newRiskTier)
-    {
-        if (RiskTier != newRiskTier)
-        {
-            RiskTier = newRiskTier;
-            MarkAsUpdated();
-        }
     }
 
     public void UpdateOwner(string newOwner)

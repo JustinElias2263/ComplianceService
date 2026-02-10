@@ -11,6 +11,7 @@ public record AddEnvironmentConfigCommand : IRequest<Result<ApplicationDto>>
 {
     public required Guid ApplicationId { get; init; }
     public required string EnvironmentName { get; init; }
+    public required string RiskTier { get; init; }
     public required IReadOnlyList<string> SecurityTools { get; init; }
     public required IReadOnlyList<string> PolicyReferences { get; init; }
 }

@@ -23,17 +23,13 @@ public class GetAllApplicationsQueryHandler : IRequestHandler<GetAllApplications
         var applications = await _applicationRepository.GetAllAsync(cancellationToken);
 
         // Apply filters
-        if (!string.IsNullOrWhiteSpace(request.RiskTier))
-        {
-            applications = applications.Where(a =>
-                a.RiskTier.Value.Equals(request.RiskTier, StringComparison.OrdinalIgnoreCase)).ToList();
-        }
-
         if (!string.IsNullOrWhiteSpace(request.Owner))
         {
             applications = applications.Where(a =>
                 a.Owner.Equals(request.Owner, StringComparison.OrdinalIgnoreCase)).ToList();
         }
+
+        // Note: RiskTier filter removed as risk tier is now per-environment, not per-application
 
         // Apply pagination
         var skip = (request.PageNumber - 1) * request.PageSize;
@@ -46,12 +42,12 @@ public class GetAllApplicationsQueryHandler : IRequestHandler<GetAllApplications
         {
             Id = application.Id,
             Name = application.Name,
-            RiskTier = application.RiskTier.Value,
             Owner = application.Owner,
             Environments = application.Environments.Select(e => new EnvironmentConfigDto
             {
                 Id = e.Id,
                 Name = e.Name,
+                RiskTier = e.RiskTier.Value,
                 SecurityTools = e.SecurityTools.Select(t => t.Value).ToList(),
                 PolicyReferences = e.PolicyReferences.Select(p => p.PackageName).ToList(),
                 IsActive = e.IsActive

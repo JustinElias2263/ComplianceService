@@ -31,12 +31,12 @@ public class GetApplicationByIdQueryHandler : IRequestHandler<GetApplicationById
         {
             Id = application.Id,
             Name = application.Name,
-            RiskTier = application.RiskTier.Value,
             Owner = application.Owner,
             Environments = application.Environments.Select(e => new EnvironmentConfigDto
             {
                 Id = e.Id,
                 Name = e.Name,
+                RiskTier = e.RiskTier.Value,
                 SecurityTools = e.SecurityTools.Select(t => t.Value).ToList(),
                 PolicyReferences = e.PolicyReferences.Select(p => p.PackageName).ToList(),
                 IsActive = e.IsActive

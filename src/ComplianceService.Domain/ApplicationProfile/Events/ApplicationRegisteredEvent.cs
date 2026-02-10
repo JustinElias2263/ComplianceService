@@ -9,20 +9,17 @@ public sealed class ApplicationRegisteredEvent : IDomainEvent
 {
     public Guid ApplicationId { get; }
     public string ApplicationName { get; }
-    public string RiskTier { get; }
     public string Owner { get; }
     public DateTime OccurredOn { get; }
 
     public ApplicationRegisteredEvent(
         Guid applicationId,
         string applicationName,
-        string riskTier,
         string owner,
         DateTime occurredOn)
     {
         ApplicationId = applicationId;
         ApplicationName = applicationName;
-        RiskTier = riskTier;
         Owner = owner;
         OccurredOn = occurredOn;
     }

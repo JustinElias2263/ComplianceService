@@ -10,6 +10,5 @@ namespace ComplianceService.Application.Commands;
 public record RegisterApplicationCommand : IRequest<Result<ApplicationDto>>
 {
     public required string Name { get; init; }
-    public required string RiskTier { get; init; }
     public required string Owner { get; init; }
 }

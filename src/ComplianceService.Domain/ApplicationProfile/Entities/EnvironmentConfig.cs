@@ -11,6 +11,7 @@ public class EnvironmentConfig : Entity<Guid>
 {
     public Guid ApplicationId { get; private set; }
     public string EnvironmentName { get; private set; }
+    public RiskTier RiskTier { get; private set; }
     public List<SecurityToolType> SecurityTools { get; private set; }
     public List<PolicyReference> Policies { get; private set; }
     public Dictionary<string, string> Metadata { get; private set; }
@@ -21,6 +22,7 @@ public class EnvironmentConfig : Entity<Guid>
     private EnvironmentConfig() : base()
     {
         EnvironmentName = string.Empty;
+        RiskTier = ValueObjects.RiskTier.Low;
         SecurityTools = new List<SecurityToolType>();
         Policies = new List<PolicyReference>();
         Metadata = new Dictionary<string, string>();
@@ -30,12 +32,14 @@ public class EnvironmentConfig : Entity<Guid>
         Guid id,
         Guid applicationId,
         string environmentName,
+        RiskTier riskTier,
         List<SecurityToolType> securityTools,
         List<PolicyReference> policies,
         Dictionary<string, string> metadata) : base(id)
     {
         ApplicationId = applicationId;
         EnvironmentName = environmentName;
+        RiskTier = riskTier;
         SecurityTools = securityTools;
         Policies = policies;
         Metadata = metadata;
@@ -44,6 +48,7 @@ public class EnvironmentConfig : Entity<Guid>
     public static Result<EnvironmentConfig> Create(
         Guid applicationId,
         string environmentName,
+        RiskTier riskTier,
         List<SecurityToolType> securityTools,
         List<PolicyReference> policies,
         Dictionary<string, string>? metadata = null)
@@ -69,6 +74,7 @@ public class EnvironmentConfig : Entity<Guid>
             Guid.NewGuid(),
             applicationId,
             normalized,
+            riskTier,
             securityTools,
             policies,
             metadata ?? new Dictionary<string, string>()));
@@ -78,6 +84,11 @@ public class EnvironmentConfig : Entity<Guid>
     {
         var validNames = new[] { "production", "prod", "staging", "stage", "dev", "development", "test", "qa", "uat" };
         return validNames.Contains(name);
+    }
+
+    public void UpdateRiskTier(RiskTier newRiskTier)
+    {
+        RiskTier = newRiskTier;
     }
 
     public void UpdateSecurityTools(List<SecurityToolType> tools)

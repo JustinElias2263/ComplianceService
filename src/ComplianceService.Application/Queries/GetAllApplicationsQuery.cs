@@ -10,11 +10,6 @@ namespace ComplianceService.Application.Queries;
 public record GetAllApplicationsQuery : IRequest<Result<IReadOnlyList<ApplicationDto>>>
 {
     /// <summary>
-    /// Filter by risk tier (optional)
-    /// </summary>
-    public string? RiskTier { get; init; }
-
-    /// <summary>
     /// Filter by owner (optional)
     /// </summary>
     public string? Owner { get; init; }

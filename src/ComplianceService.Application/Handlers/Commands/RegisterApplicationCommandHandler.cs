@@ -29,15 +29,8 @@ public class RegisterApplicationCommandHandler : IRequestHandler<RegisterApplica
             return Result.Failure<ApplicationDto>($"Application with name '{request.Name}' already exists");
         }
 
-        // Create risk tier value object
-        var riskTierResult = RiskTier.FromString(request.RiskTier);
-        if (riskTierResult.IsFailure)
-        {
-            return Result.Failure<ApplicationDto>(riskTierResult.Error);
-        }
-
         // Create application aggregate
-        var applicationResult = Application.Create(request.Name, riskTierResult.Value, request.Owner);
+        var applicationResult = Application.Create(request.Name, request.Owner);
         if (applicationResult.IsFailure)
         {
             return Result.Failure<ApplicationDto>(applicationResult.Error);
@@ -58,12 +51,12 @@ public class RegisterApplicationCommandHandler : IRequestHandler<RegisterApplica
         {
             Id = application.Id,
             Name = application.Name,
-            RiskTier = application.RiskTier.Value,
             Owner = application.Owner,
             Environments = application.Environments.Select(e => new EnvironmentConfigDto
             {
                 Id = e.Id,
                 Name = e.Name,
+                RiskTier = e.RiskTier.Value,
                 SecurityTools = e.SecurityTools.Select(t => t.Value).ToList(),
                 PolicyReferences = e.PolicyReferences.Select(p => p.PackageName).ToList(),
                 IsActive = e.IsActive

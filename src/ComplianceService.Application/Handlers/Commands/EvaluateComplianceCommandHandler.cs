@@ -49,11 +49,13 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
             return Result.Failure<ComplianceEvaluationDto>($"Application with ID '{request.ApplicationId}' not found");
         }
 
-        var environment = application.GetEnvironment(request.Environment);
-        if (environment == null)
+        var environmentResult = application.GetEnvironment(request.Environment);
+        if (environmentResult.IsFailure)
         {
-            return Result.Failure<ComplianceEvaluationDto>($"Environment '{request.Environment}' not found for application '{application.Name}'");
+            return Result.Failure<ComplianceEvaluationDto>(environmentResult.Error);
         }
+
+        var environment = environmentResult.Value;
 
         if (!environment.IsActive)
         {
@@ -107,7 +109,7 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
             {
                 Name = application.Name,
                 Environment = request.Environment,
-                RiskTier = application.RiskTier.Value,
+                RiskTier = environment.RiskTier.Value,
                 Owner = application.Owner
             },
             ScanResults = request.ScanResults,

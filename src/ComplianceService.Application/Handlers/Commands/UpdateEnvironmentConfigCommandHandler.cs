@@ -28,8 +28,28 @@ public class UpdateEnvironmentConfigCommandHandler : IRequestHandler<UpdateEnvir
             return Result.Failure<ApplicationDto>($"Application with ID '{request.ApplicationId}' not found");
         }
 
-        // Parse security tools if provided
-        List<SecurityToolType>? tools = null;
+        // Get environment
+        var environmentResult = application.GetEnvironment(request.EnvironmentName);
+        if (environmentResult.IsFailure)
+        {
+            return Result.Failure<ApplicationDto>(environmentResult.Error);
+        }
+
+        var environment = environmentResult.Value;
+
+        // Update risk tier if provided
+        if (!string.IsNullOrWhiteSpace(request.RiskTier))
+        {
+            var riskTierResult = RiskTier.FromString(request.RiskTier);
+            if (riskTierResult.IsFailure)
+            {
+                return Result.Failure<ApplicationDto>(riskTierResult.Error);
+            }
+
+            environment.UpdateRiskTier(riskTierResult.Value);
+        }
+
+        // Update security tools if provided
         if (request.SecurityTools != null)
         {
             var toolResults = request.SecurityTools
@@ -42,11 +62,11 @@ public class UpdateEnvironmentConfigCommandHandler : IRequestHandler<UpdateEnvir
                 return Result.Failure<ApplicationDto>(failedTool.Error);
             }
 
-            tools = toolResults.Select(r => r.Value).ToList();
+            var tools = toolResults.Select(r => r.Value).ToList();
+            environment.UpdateSecurityTools(tools);
         }
 
-        // Parse policy references if provided
-        List<PolicyReference>? policies = null;
+        // Update policy references if provided
         if (request.PolicyReferences != null)
         {
             var policyResults = request.PolicyReferences
@@ -59,19 +79,8 @@ public class UpdateEnvironmentConfigCommandHandler : IRequestHandler<UpdateEnvir
                 return Result.Failure<ApplicationDto>(failedPolicy.Error);
             }
 
-            policies = policyResults.Select(r => r.Value).ToList();
-        }
-
-        // Update environment configuration
-        var result = application.UpdateEnvironmentConfig(
-            request.EnvironmentName,
-            tools,
-            policies,
-            request.IsActive);
-
-        if (result.IsFailure)
-        {
-            return Result.Failure<ApplicationDto>(result.Error);
+            var policies = policyResults.Select(r => r.Value).ToList();
+            environment.UpdatePolicies(policies);
         }
 
         // Persist
@@ -88,12 +97,12 @@ public class UpdateEnvironmentConfigCommandHandler : IRequestHandler<UpdateEnvir
         {
             Id = application.Id,
             Name = application.Name,
-            RiskTier = application.RiskTier.Value,
             Owner = application.Owner,
             Environments = application.Environments.Select(e => new EnvironmentConfigDto
             {
                 Id = e.Id,
                 Name = e.Name,
+                RiskTier = e.RiskTier.Value,
                 SecurityTools = e.SecurityTools.Select(t => t.Value).ToList(),
                 PolicyReferences = e.PolicyReferences.Select(p => p.PackageName).ToList(),
                 IsActive = e.IsActive
