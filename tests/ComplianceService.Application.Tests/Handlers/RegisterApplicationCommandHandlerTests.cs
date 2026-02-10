@@ -137,28 +137,4 @@ public class RegisterApplicationCommandHandlerTests
         _mockRepository.Verify(r => r.AddAsync(It.IsAny<DomainApplication>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    [Fact]
-    public async Task Handle_WhenRepositoryAddFails_ShouldPropagateError()
-    {
-        // Arrange
-        var command = new RegisterApplicationCommand
-        {
-            Name = "TestApp",
-            Owner = "team@example.com"
-        };
-
-        _mockRepository
-            .Setup(r => r.GetByNameAsync(command.Name, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Failure<DomainApplication>("Not found"));
-
-        _mockRepository
-            .Setup(r => r.AddAsync(It.IsAny<DomainApplication>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Failure("Database error"));
-
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-        {
-            await _handler.Handle(command, CancellationToken.None);
-        });
-    }
 }

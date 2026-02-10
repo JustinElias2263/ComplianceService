@@ -63,7 +63,7 @@ public class PolicyReferenceTests
     public void Create_WithTooShortName_ShouldFail()
     {
         // Arrange
-        var shortName = "a/b";
+        var shortName = "a/";  // Only 2 characters
 
         // Act
         var result = PolicyReference.Create(shortName);
