@@ -172,27 +172,22 @@ public class ApplicationTests
         var newOwner = "newteam@example.com";
 
         // Act
-        var result = application.UpdateOwner(newOwner);
+        application.UpdateOwner(newOwner);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
         application.Owner.Should().Be(newOwner);
     }
 
     [Theory]
     [InlineData("invalid-email")]
     [InlineData("")]
-    public void UpdateOwner_WithInvalidEmail_ShouldFail(string invalidEmail)
+    public void UpdateOwner_WithInvalidEmail_ShouldThrow(string invalidEmail)
     {
         // Arrange
         var application = Application.Create("MyService", "team@example.com").Value;
 
-        // Act
-        var result = application.UpdateOwner(invalidEmail);
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("valid email");
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => application.UpdateOwner(invalidEmail));
     }
 
     [Fact]

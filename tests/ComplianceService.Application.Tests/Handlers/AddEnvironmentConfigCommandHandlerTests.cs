@@ -1,5 +1,6 @@
 using ComplianceService.Application.Commands;
 using ComplianceService.Application.Handlers.Commands;
+using ComplianceService.Domain.ApplicationProfile.Entities;
 using ComplianceService.Domain.ApplicationProfile.Interfaces;
 using ComplianceService.Domain.ApplicationProfile.ValueObjects;
 using ComplianceService.Domain.Shared;
@@ -100,7 +101,13 @@ public class AddEnvironmentConfigCommandHandlerTests
         var tools = new List<SecurityToolType> { SecurityToolType.Snyk };
         var policies = new List<PolicyReference> { PolicyReference.Create("compliance/staging").Value };
 
-        application.AddEnvironment("staging", riskTier, tools, policies);
+        var environmentConfig = EnvironmentConfig.Create(
+            application.Id,
+            "staging",
+            riskTier,
+            tools,
+            policies).Value;
+        application.AddEnvironment(environmentConfig);
 
         var command = new AddEnvironmentConfigCommand
         {

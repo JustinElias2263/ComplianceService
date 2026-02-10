@@ -1,5 +1,6 @@
 using ComplianceService.Application.Handlers.Queries;
 using ComplianceService.Application.Queries;
+using ComplianceService.Domain.ApplicationProfile.Entities;
 using ComplianceService.Domain.ApplicationProfile.Interfaces;
 using ComplianceService.Domain.ApplicationProfile.ValueObjects;
 using ComplianceService.Domain.Shared;
@@ -30,7 +31,13 @@ public class GetApplicationByIdQueryHandlerTests
         var tools = new List<SecurityToolType> { SecurityToolType.Snyk };
         var policies = new List<PolicyReference> { PolicyReference.Create("compliance/production").Value };
 
-        application.AddEnvironment("production", riskTier, tools, policies);
+        var environmentConfig = EnvironmentConfig.Create(
+            application.Id,
+            "production",
+            riskTier,
+            tools,
+            policies).Value;
+        application.AddEnvironment(environmentConfig);
 
         var query = new GetApplicationByIdQuery { ApplicationId = application.Id };
 
