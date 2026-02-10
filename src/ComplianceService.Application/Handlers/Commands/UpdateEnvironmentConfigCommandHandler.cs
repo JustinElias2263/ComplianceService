@@ -22,11 +22,13 @@ public class UpdateEnvironmentConfigCommandHandler : IRequestHandler<UpdateEnvir
     public async Task<Result<ApplicationDto>> Handle(UpdateEnvironmentConfigCommand request, CancellationToken cancellationToken)
     {
         // Get application
-        var application = await _applicationRepository.GetByIdAsync(request.ApplicationId, cancellationToken);
-        if (application == null)
+        var applicationResult = await _applicationRepository.GetByIdAsync(request.ApplicationId, cancellationToken);
+        if (applicationResult.IsFailure)
         {
-            return Result.Failure<ApplicationDto>($"Application with ID '{request.ApplicationId}' not found");
+            return Result.Failure<ApplicationDto>(applicationResult.Error);
         }
+
+        var application = applicationResult.Value;
 
         // Get environment
         var environmentResult = application.GetEnvironment(request.EnvironmentName);

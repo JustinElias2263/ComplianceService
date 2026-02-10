@@ -23,11 +23,13 @@ public class AddEnvironmentConfigCommandHandler : IRequestHandler<AddEnvironment
     public async Task<Result<ApplicationDto>> Handle(AddEnvironmentConfigCommand request, CancellationToken cancellationToken)
     {
         // Get application
-        var application = await _applicationRepository.GetByIdAsync(request.ApplicationId, cancellationToken);
-        if (application == null)
+        var applicationResult = await _applicationRepository.GetByIdAsync(request.ApplicationId, cancellationToken);
+        if (applicationResult.IsFailure)
         {
-            return Result.Failure<ApplicationDto>($"Application with ID '{request.ApplicationId}' not found");
+            return Result.Failure<ApplicationDto>(applicationResult.Error);
         }
+
+        var application = applicationResult.Value;
 
         // Create risk tier value object
         var riskTierResult = RiskTier.Create(request.RiskTier);

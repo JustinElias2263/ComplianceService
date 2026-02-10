@@ -32,14 +32,14 @@ public class GetComplianceEvaluationsQueryHandler : IRequestHandler<GetComplianc
         {
             evaluations = await _evaluationRepository.GetByApplicationIdAsync(
                 request.ApplicationId.Value,
-                request.FromDate,
-                request.ToDate,
                 cancellationToken);
         }
         else
         {
-            // Would typically get all, but for now return empty
-            evaluations = new List<Domain.Evaluation.ComplianceEvaluation>();
+            // Get recent evaluations if no specific application requested
+            evaluations = await _evaluationRepository.GetRecentAsync(
+                days: 30,
+                cancellationToken);
         }
 
         // Apply additional filters
@@ -54,6 +54,17 @@ public class GetComplianceEvaluationsQueryHandler : IRequestHandler<GetComplianc
             evaluations = evaluations.Where(e => e.IsAllowed == request.Passed.Value);
         }
 
+        // Apply date range filters
+        if (request.FromDate.HasValue)
+        {
+            evaluations = evaluations.Where(e => e.EvaluatedAt >= request.FromDate.Value);
+        }
+
+        if (request.ToDate.HasValue)
+        {
+            evaluations = evaluations.Where(e => e.EvaluatedAt <= request.ToDate.Value);
+        }
+
         // Apply pagination
         var skip = (request.PageNumber - 1) * request.PageSize;
         var pagedEvaluations = evaluations
@@ -66,14 +77,19 @@ public class GetComplianceEvaluationsQueryHandler : IRequestHandler<GetComplianc
         foreach (var evaluation in pagedEvaluations)
         {
             // Get application to retrieve name
-            var application = await _applicationRepository.GetByIdAsync(evaluation.ApplicationId, cancellationToken);
-            var applicationName = application?.Name ?? "Unknown";
+            var applicationResult = await _applicationRepository.GetByIdAsync(evaluation.ApplicationId, cancellationToken);
+            var applicationName = applicationResult.IsSuccess ? applicationResult.Value.Name : "Unknown";
 
             // Get policy package from environment config
-            var environmentResult = application?.GetEnvironment(evaluation.Environment);
-            var policyPackage = environmentResult?.IsSuccess == true
-                ? environmentResult.Value.Policies.FirstOrDefault()?.PackageName ?? "compliance.default"
-                : "compliance.default";
+            string policyPackage = "compliance.default";
+            if (applicationResult.IsSuccess)
+            {
+                var environmentResult = applicationResult.Value.GetEnvironment(evaluation.Environment);
+                if (environmentResult.IsSuccess)
+                {
+                    policyPackage = environmentResult.Value.Policies.FirstOrDefault()?.PackageName ?? "compliance.default";
+                }
+            }
 
             dtos.Add(new ComplianceEvaluationDto
             {
