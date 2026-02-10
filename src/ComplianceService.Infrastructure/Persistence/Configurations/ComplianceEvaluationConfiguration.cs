@@ -19,18 +19,15 @@ public class ComplianceEvaluationConfiguration : IEntityTypeConfiguration<Compli
         builder.Property(e => e.ApplicationId)
             .IsRequired();
 
-        builder.Property(e => e.ApplicationName)
-            .IsRequired()
-            .HasMaxLength(100);
-
         builder.Property(e => e.Environment)
             .IsRequired()
             .HasMaxLength(50);
 
-        builder.Property(e => e.EvaluatedAt)
-            .IsRequired();
+        builder.Property(e => e.RiskTier)
+            .IsRequired()
+            .HasMaxLength(20);
 
-        builder.Property(e => e.Passed)
+        builder.Property(e => e.EvaluatedAt)
             .IsRequired();
 
         // Store ScanResults as JSON (list of ScanResult value objects)
@@ -40,25 +37,17 @@ public class ComplianceEvaluationConfiguration : IEntityTypeConfiguration<Compli
 
         builder.Ignore(e => e.ScanResults);
 
-        // Store PolicyDecision as JSON
-        builder.Property<string>("_policyDecisionJson")
-            .HasColumnName("PolicyDecision")
+        // Store Decision as JSON
+        builder.Property<string>("_decisionJson")
+            .HasColumnName("Decision")
             .IsRequired();
 
-        builder.Ignore(e => e.PolicyDecision);
-
-        // Store AggregatedCounts as JSON
-        builder.Property<string>("_aggregatedCountsJson")
-            .HasColumnName("AggregatedCounts")
-            .IsRequired();
-
-        builder.Ignore(e => e.AggregatedCounts);
+        builder.Ignore(e => e.Decision);
 
         // Indexes for querying
         builder.HasIndex(e => e.ApplicationId);
         builder.HasIndex(e => e.Environment);
         builder.HasIndex(e => e.EvaluatedAt);
-        builder.HasIndex(e => e.Passed);
 
         // Composite index for common query pattern
         builder.HasIndex(e => new { e.ApplicationId, e.Environment, e.EvaluatedAt });

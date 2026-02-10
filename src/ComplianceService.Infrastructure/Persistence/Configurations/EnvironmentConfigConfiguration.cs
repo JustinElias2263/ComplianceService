@@ -21,14 +21,11 @@ public class EnvironmentConfigConfiguration : IEntityTypeConfiguration<Environme
             .IsRequired()
             .HasMaxLength(50);
 
-        builder.Property(e => e.IsActive)
-            .IsRequired();
-
         // Configure RiskTier as owned value object stored as string
         builder.Property(e => e.RiskTier)
             .HasConversion(
                 v => v.Value,
-                v => RiskTier.FromString(v).Value)
+                v => RiskTier.Create(v).Value)
             .IsRequired()
             .HasMaxLength(20)
             .HasColumnName("RiskTier");
@@ -40,12 +37,12 @@ public class EnvironmentConfigConfiguration : IEntityTypeConfiguration<Environme
 
         builder.Ignore(e => e.SecurityTools);
 
-        // Store PolicyReferences as JSON array
-        builder.Property<string>("_policyReferencesJson")
-            .HasColumnName("PolicyReferences")
+        // Store Policies as JSON array
+        builder.Property<string>("_policiesJson")
+            .HasColumnName("Policies")
             .IsRequired();
 
-        builder.Ignore(e => e.PolicyReferences);
+        builder.Ignore(e => e.Policies);
 
         // Store Metadata as JSON
         builder.Property(e => e.Metadata)
