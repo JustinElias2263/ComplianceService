@@ -35,11 +35,11 @@ public class GetApplicationByNameQueryHandler : IRequestHandler<GetApplicationBy
             Environments = application.Environments.Select(e => new EnvironmentConfigDto
             {
                 Id = e.Id,
-                Name = e.Name,
+                Name = e.EnvironmentName,
                 RiskTier = e.RiskTier.Value,
-                SecurityTools = e.SecurityTools.Select(t => t.Value).ToList(),
-                PolicyReferences = e.PolicyReferences.Select(p => p.PackageName).ToList(),
-                IsActive = e.IsActive
+                SecurityTools = e.SecurityTools.Select(t => t.Name).ToList(),
+                PolicyReferences = e.Policies.Select(p => p.PackageName).ToList(),
+                IsActive = application.IsActive
             }).ToList(),
             CreatedAt = application.CreatedAt,
             UpdatedAt = application.UpdatedAt

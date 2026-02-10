@@ -30,7 +30,7 @@ public class AddEnvironmentConfigCommandHandler : IRequestHandler<AddEnvironment
         }
 
         // Create risk tier value object
-        var riskTierResult = RiskTier.FromString(request.RiskTier);
+        var riskTierResult = RiskTier.Create(request.RiskTier);
         if (riskTierResult.IsFailure)
         {
             return Result.Failure<ApplicationDto>(riskTierResult.Error);
@@ -38,7 +38,7 @@ public class AddEnvironmentConfigCommandHandler : IRequestHandler<AddEnvironment
 
         // Create security tool value objects
         var toolResults = request.SecurityTools
-            .Select(SecurityToolType.FromString)
+            .Select(SecurityToolType.Create)
             .ToList();
 
         var failedTool = toolResults.FirstOrDefault(r => r.IsFailure);
@@ -100,11 +100,11 @@ public class AddEnvironmentConfigCommandHandler : IRequestHandler<AddEnvironment
             Environments = application.Environments.Select(e => new EnvironmentConfigDto
             {
                 Id = e.Id,
-                Name = e.Name,
+                Name = e.EnvironmentName,
                 RiskTier = e.RiskTier.Value,
-                SecurityTools = e.SecurityTools.Select(t => t.Value).ToList(),
-                PolicyReferences = e.PolicyReferences.Select(p => p.PackageName).ToList(),
-                IsActive = e.IsActive
+                SecurityTools = e.SecurityTools.Select(t => t.Name).ToList(),
+                PolicyReferences = e.Policies.Select(p => p.PackageName).ToList(),
+                IsActive = application.IsActive
             }).ToList(),
             CreatedAt = application.CreatedAt,
             UpdatedAt = application.UpdatedAt

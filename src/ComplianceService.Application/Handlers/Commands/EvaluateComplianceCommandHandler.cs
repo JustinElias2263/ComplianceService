@@ -57,9 +57,9 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
 
         var environment = environmentResult.Value;
 
-        if (!environment.IsActive)
+        if (!application.IsActive)
         {
-            return Result.Failure<ComplianceEvaluationDto>($"Environment '{request.Environment}' is not active for application '{application.Name}'");
+            return Result.Failure<ComplianceEvaluationDto>($"Application '{application.Name}' is not active");
         }
 
         // 2. Convert scan results to domain value objects
@@ -69,21 +69,14 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
             var vulnerabilities = new List<Vulnerability>();
             foreach (var vulnDto in scanDto.Vulnerabilities)
             {
-                var severityResult = VulnerabilitySeverity.FromString(vulnDto.Severity);
-                if (severityResult.IsFailure)
-                {
-                    return Result.Failure<ComplianceEvaluationDto>(severityResult.Error);
-                }
-
                 var vulnResult = Vulnerability.Create(
                     vulnDto.CveId,
-                    severityResult.Value,
+                    vulnDto.Description ?? vulnDto.CveId,
+                    vulnDto.Severity,
                     vulnDto.CvssScore,
                     vulnDto.PackageName,
                     vulnDto.CurrentVersion,
-                    vulnDto.FixedVersion,
-                    vulnDto.Description,
-                    vulnDto.IsFixable);
+                    vulnDto.FixedVersion);
 
                 if (vulnResult.IsFailure)
                 {
@@ -93,7 +86,11 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
                 vulnerabilities.Add(vulnResult.Value);
             }
 
-            var scanResult = ScanResult.Create(scanDto.ToolName, scanDto.ScannedAt, vulnerabilities, scanDto.RawOutput);
+            var scanResult = ScanResult.Create(
+                scanDto.ToolName,
+                "1.0",
+                scanDto.ScannedAt ?? DateTime.UtcNow,
+                vulnerabilities);
             if (scanResult.IsFailure)
             {
                 return Result.Failure<ComplianceEvaluationDto>(scanResult.Error);
@@ -117,7 +114,7 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
         };
 
         // Use the first policy reference (in a real implementation, you might aggregate multiple policies)
-        var policyPackage = environment.PolicyReferences.FirstOrDefault()?.PackageName
+        var policyPackage = environment.Policies.FirstOrDefault()?.PackageName
             ?? "compliance.default";
 
         OpaDecisionDto opaDecision;
@@ -133,8 +130,7 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
         // 4. Create policy decision value object
         var policyDecisionResult = PolicyDecision.Create(
             opaDecision.Allow,
-            opaDecision.Violations.Select(v => v.Message).ToList(),
-            policyPackage);
+            opaDecision.Violations.Select(v => v.Message).ToList());
 
         if (policyDecisionResult.IsFailure)
         {
@@ -144,8 +140,8 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
         // 5. Create compliance evaluation aggregate
         var evaluationResult = ComplianceEvaluation.Create(
             request.ApplicationId,
-            application.Name,
             request.Environment,
+            environment.RiskTier.Value,
             scanResults,
             policyDecisionResult.Value);
 
@@ -180,9 +176,9 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
             application.Name,
             request.Environment,
             policyDecisionResult.Value,
-            evaluation.AggregatedCounts.Total,
-            evaluation.AggregatedCounts.Critical,
-            evaluation.AggregatedCounts.High,
+            evaluation.GetTotalVulnerabilityCount(),
+            evaluation.GetCriticalVulnerabilityCount(),
+            evaluation.GetHighVulnerabilityCount(),
             request.InitiatedBy,
             evidenceResult.Value);
 
@@ -199,28 +195,31 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
         {
             try
             {
-                if (!evaluation.Passed || evaluation.AggregatedCounts.Critical > 0)
+                var criticalCount = evaluation.GetCriticalVulnerabilityCount();
+                var highCount = evaluation.GetHighVulnerabilityCount();
+
+                if (evaluation.IsBlocked || criticalCount > 0)
                 {
                     var recipients = new List<string> { application.Owner };
 
-                    if (!evaluation.Passed)
+                    if (evaluation.IsBlocked)
                     {
                         await _notificationService.SendComplianceNotificationAsync(
                             application.Name,
                             request.Environment,
-                            evaluation.Passed,
+                            evaluation.IsAllowed,
                             opaDecision.Violations.Select(v => v.Message).ToList(),
                             recipients,
                             CancellationToken.None);
                     }
 
-                    if (evaluation.AggregatedCounts.Critical > 0 || evaluation.AggregatedCounts.High > 0)
+                    if (criticalCount > 0 || highCount > 0)
                     {
                         await _notificationService.SendCriticalVulnerabilityAlertAsync(
                             application.Name,
                             request.Environment,
-                            evaluation.AggregatedCounts.Critical,
-                            evaluation.AggregatedCounts.High,
+                            criticalCount,
+                            highCount,
                             recipients,
                             CancellationToken.None);
                     }
@@ -233,56 +232,56 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
         }, cancellationToken);
 
         // 9. Map to DTO and return
-        return Result.Success(MapToDto(evaluation));
+        return Result.Success(MapToDto(evaluation, application.Name, policyPackage));
     }
 
-    private static ComplianceEvaluationDto MapToDto(ComplianceEvaluation evaluation)
+    private static ComplianceEvaluationDto MapToDto(ComplianceEvaluation evaluation, string applicationName, string policyPackage)
     {
         return new ComplianceEvaluationDto
         {
             Id = evaluation.Id,
             ApplicationId = evaluation.ApplicationId,
-            ApplicationName = evaluation.ApplicationName,
+            ApplicationName = applicationName,
             Environment = evaluation.Environment,
             EvaluatedAt = evaluation.EvaluatedAt,
-            Passed = evaluation.Passed,
+            Passed = evaluation.IsAllowed,
             ScanResults = evaluation.ScanResults.Select(sr => new ScanResultDto
             {
-                ToolName = sr.ToolName,
-                ScannedAt = sr.ScannedAt,
+                ToolName = sr.Tool,
+                ScannedAt = sr.ScanDate,
                 Vulnerabilities = sr.Vulnerabilities.Select(v => new VulnerabilityDto
                 {
-                    CveId = v.CveId,
+                    CveId = v.Id,
                     Severity = v.Severity.Value,
-                    CvssScore = v.CvssScore,
+                    CvssScore = (decimal)v.CvssScore,
                     PackageName = v.PackageName,
-                    CurrentVersion = v.CurrentVersion,
-                    FixedVersion = v.FixedVersion,
-                    Description = v.Description,
-                    IsFixable = v.IsFixable,
-                    Source = sr.ToolName
+                    CurrentVersion = v.PackageVersion,
+                    FixedVersion = v.FixedIn,
+                    Description = v.Title,
+                    IsFixable = !string.IsNullOrEmpty(v.FixedIn),
+                    Source = sr.Tool
                 }).ToList(),
-                RawOutput = sr.RawOutput
+                RawOutput = string.Empty
             }).ToList(),
             PolicyDecision = new PolicyDecisionDto
             {
-                Allow = evaluation.PolicyDecision.Allow,
-                Violations = evaluation.PolicyDecision.Violations.Select(v => new PolicyViolationDto
+                Allow = evaluation.Decision.Allowed,
+                Violations = evaluation.Decision.Violations.Select(v => new PolicyViolationDto
                 {
                     Rule = "Policy Violation",
                     Message = v,
                     Severity = "high"
                 }).ToList(),
-                PolicyPackage = evaluation.PolicyDecision.PolicyPackage,
-                Reason = evaluation.PolicyDecision.Allow ? "All policies passed" : "Policy violations detected"
+                PolicyPackage = policyPackage,
+                Reason = evaluation.Decision.GetReason()
             },
             AggregatedCounts = new VulnerabilityCountsDto
             {
-                Critical = evaluation.AggregatedCounts.Critical,
-                High = evaluation.AggregatedCounts.High,
-                Medium = evaluation.AggregatedCounts.Medium,
-                Low = evaluation.AggregatedCounts.Low,
-                Total = evaluation.AggregatedCounts.Total
+                Critical = evaluation.GetCriticalVulnerabilityCount(),
+                High = evaluation.GetHighVulnerabilityCount(),
+                Medium = evaluation.GetMediumVulnerabilityCount(),
+                Low = evaluation.GetLowVulnerabilityCount(),
+                Total = evaluation.GetTotalVulnerabilityCount()
             }
         };
     }
