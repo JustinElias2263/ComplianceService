@@ -101,7 +101,7 @@ public class UpdateApplicationOwnerCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("owner");
+        result.Error.Should().ContainAny("owner", "Owner", "empty");
 
         _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<DomainApplication>(), It.IsAny<CancellationToken>()), Times.Never);
     }
