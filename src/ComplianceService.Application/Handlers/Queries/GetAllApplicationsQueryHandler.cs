@@ -53,7 +53,7 @@ public class GetAllApplicationsQueryHandler : IRequestHandler<GetAllApplications
                 IsActive = application.IsActive
             }).ToList(),
             CreatedAt = application.CreatedAt,
-            UpdatedAt = application.UpdatedAt
+            UpdatedAt = application.UpdatedAt.GetValueOrDefault(application.CreatedAt)
         }).ToList();
 
         return Result.Success<IReadOnlyList<ApplicationDto>>(dtos);

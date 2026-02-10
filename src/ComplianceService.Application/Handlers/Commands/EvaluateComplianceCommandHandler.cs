@@ -75,7 +75,7 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
                     vulnDto.CveId,
                     vulnDto.Description ?? vulnDto.CveId,
                     vulnDto.Severity,
-                    vulnDto.CvssScore,
+                    (double)(vulnDto.CvssScore ?? 0),
                     vulnDto.PackageName,
                     vulnDto.CurrentVersion,
                     vulnDto.FixedVersion);
@@ -91,7 +91,7 @@ public class EvaluateComplianceCommandHandler : IRequestHandler<EvaluateComplian
             var scanResult = ScanResult.Create(
                 scanDto.ToolName,
                 "1.0",
-                scanDto.ScannedAt ?? DateTime.UtcNow,
+                scanDto.ScannedAt,
                 vulnerabilities);
             if (scanResult.IsFailure)
             {
