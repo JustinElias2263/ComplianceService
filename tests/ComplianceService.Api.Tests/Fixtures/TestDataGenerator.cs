@@ -80,13 +80,14 @@ public static class TestDataGenerator
         {
             ApplicationId = applicationId,
             Environment = environment,
+            InitiatedBy = "test-pipeline",
             ScanResults = new List<ScanResultDto>
             {
                 new ScanResultDto
                 {
                     ToolName = "snyk",
                     ScannedAt = DateTime.UtcNow,
-                    ProjectId = "project-123",
+                    RawOutput = "{}",
                     Vulnerabilities = new List<VulnerabilityDto>()
                 }
             }
@@ -114,8 +115,8 @@ public static class TestDataGenerator
                 PackageName = $"vulnerable-package-{i}",
                 CurrentVersion = "1.0.0",
                 FixedVersion = "1.0.1",
-                Cve = new List<string> { $"CVE-2024-{1000 + i}" },
-                Cwe = new List<string> { "CWE-89", "CWE-78" }
+                IsFixable = true,
+                Source = "snyk"
             });
         }
 
@@ -123,13 +124,14 @@ public static class TestDataGenerator
         {
             ApplicationId = applicationId,
             Environment = environment,
+            InitiatedBy = "test-pipeline",
             ScanResults = new List<ScanResultDto>
             {
                 new ScanResultDto
                 {
                     ToolName = "snyk",
                     ScannedAt = DateTime.UtcNow,
-                    ProjectId = "project-123",
+                    RawOutput = "{}",
                     Vulnerabilities = vulnerabilities
                 }
             }
@@ -157,8 +159,8 @@ public static class TestDataGenerator
                 PackageName = $"high-vuln-package-{i}",
                 CurrentVersion = "2.0.0",
                 FixedVersion = "2.1.0",
-                Cve = new List<string> { $"CVE-2024-{2000 + i}" },
-                Cwe = new List<string> { "CWE-89" }
+                IsFixable = true,
+                Source = "snyk"
             });
         }
 
@@ -166,13 +168,14 @@ public static class TestDataGenerator
         {
             ApplicationId = applicationId,
             Environment = environment,
+            InitiatedBy = "test-pipeline",
             ScanResults = new List<ScanResultDto>
             {
                 new ScanResultDto
                 {
                     ToolName = "snyk",
                     ScannedAt = DateTime.UtcNow,
-                    ProjectId = "project-456",
+                    RawOutput = "{}",
                     Vulnerabilities = vulnerabilities
                 }
             }
@@ -197,8 +200,8 @@ public static class TestDataGenerator
                 PackageName = "logger-package",
                 CurrentVersion = "3.0.0",
                 FixedVersion = "3.1.0",
-                Cve = new List<string> { "CVE-2024-3001" },
-                Cwe = new List<string> { "CWE-200" }
+                IsFixable = true,
+                Source = "snyk"
             },
             new VulnerabilityDto
             {
@@ -209,8 +212,8 @@ public static class TestDataGenerator
                 PackageName = "web-framework",
                 CurrentVersion = "4.0.0",
                 FixedVersion = "4.0.1",
-                Cve = new List<string>(),
-                Cwe = new List<string> { "CWE-1021" }
+                IsFixable = true,
+                Source = "snyk"
             }
         };
 
@@ -218,13 +221,14 @@ public static class TestDataGenerator
         {
             ApplicationId = applicationId,
             Environment = environment,
+            InitiatedBy = "test-pipeline",
             ScanResults = new List<ScanResultDto>
             {
                 new ScanResultDto
                 {
                     ToolName = "snyk",
                     ScannedAt = DateTime.UtcNow,
-                    ProjectId = "project-789",
+                    RawOutput = "{}",
                     Vulnerabilities = vulnerabilities
                 }
             }
@@ -240,13 +244,14 @@ public static class TestDataGenerator
         {
             ApplicationId = applicationId,
             Environment = environment,
+            InitiatedBy = "test-pipeline",
             ScanResults = new List<ScanResultDto>
             {
                 new ScanResultDto
                 {
                     ToolName = "snyk",
                     ScannedAt = DateTime.UtcNow,
-                    ProjectId = "snyk-project-123",
+                    RawOutput = "{}",
                     Vulnerabilities = new List<VulnerabilityDto>
                     {
                         new VulnerabilityDto
@@ -257,7 +262,9 @@ public static class TestDataGenerator
                             CvssScore = 5.5m,
                             PackageName = "dependency-a",
                             CurrentVersion = "1.0.0",
-                            FixedVersion = "1.1.0"
+                            FixedVersion = "1.1.0",
+                            IsFixable = true,
+                            Source = "snyk"
                         }
                     }
                 },
@@ -265,7 +272,7 @@ public static class TestDataGenerator
                 {
                     ToolName = "prismacloud",
                     ScannedAt = DateTime.UtcNow,
-                    ProjectId = "prisma-project-456",
+                    RawOutput = "{}",
                     Vulnerabilities = new List<VulnerabilityDto>
                     {
                         new VulnerabilityDto
@@ -276,7 +283,9 @@ public static class TestDataGenerator
                             CvssScore = 4.8m,
                             PackageName = "base-image",
                             CurrentVersion = "alpine:3.14",
-                            FixedVersion = "alpine:3.18"
+                            FixedVersion = "alpine:3.18",
+                            IsFixable = true,
+                            Source = "prismacloud"
                         }
                     }
                 }
@@ -300,7 +309,9 @@ public static class TestDataGenerator
                 CvssScore = 2.1m,
                 PackageName = "logging-lib",
                 CurrentVersion = "1.0.0",
-                FixedVersion = "1.0.1"
+                FixedVersion = "1.0.1",
+                IsFixable = true,
+                Source = "snyk"
             },
             new VulnerabilityDto
             {
@@ -310,7 +321,9 @@ public static class TestDataGenerator
                 CvssScore = 1.9m,
                 PackageName = "config-parser",
                 CurrentVersion = "2.0.0",
-                FixedVersion = "2.0.1"
+                FixedVersion = "2.0.1",
+                IsFixable = true,
+                Source = "snyk"
             }
         };
 
@@ -318,13 +331,14 @@ public static class TestDataGenerator
         {
             ApplicationId = applicationId,
             Environment = "production",
+            InitiatedBy = "test-pipeline",
             ScanResults = new List<ScanResultDto>
             {
                 new ScanResultDto
                 {
                     ToolName = "snyk",
                     ScannedAt = DateTime.UtcNow,
-                    ProjectId = "payment-service-prod",
+                    RawOutput = "{}",
                     Vulnerabilities = vulnerabilities
                 }
             }
