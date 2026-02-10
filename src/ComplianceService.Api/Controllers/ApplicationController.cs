@@ -94,7 +94,7 @@ public class ApplicationController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetApplicationByName(string name)
     {
-        var query = new GetApplicationByNameQuery { ApplicationName = name };
+        var query = new GetApplicationByNameQuery { Name = name };
         var result = await _mediator.Send(query);
 
         if (result.IsFailure)
@@ -114,18 +114,21 @@ public class ApplicationController : ControllerBase
     /// Get all applications
     /// </summary>
     /// <param name="owner">Optional filter by owner</param>
-    /// <param name="activeOnly">Filter active applications only</param>
+    /// <param name="pageNumber">Page number for pagination</param>
+    /// <param name="pageSize">Page size for pagination</param>
     /// <returns>List of applications</returns>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<ApplicationDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllApplications(
         [FromQuery] string? owner = null,
-        [FromQuery] bool activeOnly = false)
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 50)
     {
         var query = new GetAllApplicationsQuery
         {
             Owner = owner,
-            ActiveOnly = activeOnly
+            PageNumber = pageNumber,
+            PageSize = pageSize
         };
 
         var result = await _mediator.Send(query);
