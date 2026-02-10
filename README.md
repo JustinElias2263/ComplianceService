@@ -34,24 +34,50 @@ Manage applications with configurable profiles for different environments and co
 - Custom compliance policy mappings
 - Application metadata and ownership
 
-### 2. Security Tool Integration
-Seamlessly integrate multiple security scanning tools:
-- **Snyk** - Dependency vulnerability scanning
-- **Prisma Cloud** - Container and cloud security
-- Tool registration per application
-- Ensure OPA applies correct compliance evaluations based on scan results
+### 2. Security Tool Management
+Manage security tool configurations and process their scan results:
+- **Snyk** - Dependency vulnerability scanning results
+- **Prisma Cloud** - Container and cloud security scan results
+- Tool registration per application (metadata only)
+- CI pipeline executes security tools and forwards JSON outputs
+- ComplianceService processes scan results without direct tool integration
+- OPA applies correct compliance evaluations based on application's configured tools
 
 ### 3. Direct Pipeline Architecture
 Streamlined evaluation flow with no normalization overhead:
 
 ```
-CI Pipeline → ComplianceService → OPA → ComplianceService → CI Pipeline
+┌─────────────────────────────────────────────────────────────────┐
+│ CI Pipeline                                                      │
+│  1. Run Snyk/Prisma Cloud scans                                 │
+│  2. Collect JSON outputs from security tools                    │
+│  3. Send scan results to ComplianceService ───────────┐         │
+│                                                        │         │
+│  6. Receive pass/fail decision ◄───────────────────┐  │         │
+└────────────────────────────────────────────────────┼──┼─────────┘
+                                                     │  │
+                                                     │  ▼
+                               ┌─────────────────────┴──────────────┐
+                               │ ComplianceService                   │
+                               │  4. Evaluate with OPA ────┐         │
+                               │  5. Return decision ◄──────┘         │
+                               └─────────────────────────────────────┘
 ```
 
-- Direct integration without data transformation layers
-- Fast evaluation response times
+**Flow:**
+1. CI pipeline runs security scans (Snyk, Prisma Cloud, etc.)
+2. CI pipeline sends JSON scan results to ComplianceService
+3. ComplianceService forwards to OPA for policy evaluation
+4. OPA evaluates against application's compliance policies
+5. ComplianceService returns pass/fail decision
+6. CI pipeline proceeds or blocks deployment based on decision
+
+**Benefits:**
+- No direct security tool integration required
+- CI pipeline controls tool execution
 - Raw scan results processed in real-time
-- Policy decisions returned immediately to pipeline
+- Fast evaluation response times
+- Policy decisions returned immediately
 
 ### 4. Policy as Code
 - OPA Rego policies stored in version control
@@ -115,7 +141,7 @@ The service follows **Domain-Driven Design (DDD)** principles:
 - .NET 8.0 SDK
 - PostgreSQL 14+
 - OPA installed and running
-- Snyk and/or Prisma Cloud credentials
+- CI pipeline configured with Snyk and/or Prisma Cloud
 
 ### Installation
 
@@ -128,7 +154,7 @@ cd ComplianceService
 dotnet restore
 
 # Update database connection string in appsettings.json
-# Set up environment variables for security tool credentials
+# Configure OPA endpoint
 
 # Run database migrations
 dotnet ef database update
@@ -149,22 +175,21 @@ Configure the following in `appsettings.json`:
   "OPA": {
     "Endpoint": "http://localhost:8181/v1/data/compliance"
   },
-  "SecurityTools": {
-    "Snyk": {
-      "ApiUrl": "https://api.snyk.io",
-      "ApiToken": "env:SNYK_TOKEN"
-    },
-    "PrismaCloud": {
-      "ApiUrl": "https://api.prismacloud.io",
-      "ApiToken": "env:PRISMA_TOKEN"
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information"
     }
   }
 }
 ```
 
+**Note:** ComplianceService does not require direct credentials for security tools (Snyk, Prisma Cloud). The CI pipeline executes these tools and forwards their JSON outputs to ComplianceService for evaluation.
+
 ## API Usage
 
 ### Evaluate Compliance
+
+CI pipeline sends scan results for evaluation:
 
 ```bash
 POST /api/compliance/evaluate
@@ -173,10 +198,50 @@ Content-Type: application/json
 {
   "applicationId": "my-payment-app",
   "environment": "production",
-  "scanResults": {
-    "tool": "snyk",
-    "vulnerabilities": [...]
-  }
+  "scanResults": [
+    {
+      "tool": "snyk",
+      "scanDate": "2024-01-15T10:30:00Z",
+      "vulnerabilities": [
+        {
+          "id": "SNYK-JS-AXIOS-1234567",
+          "severity": "high",
+          "packageName": "axios",
+          "version": "0.21.0",
+          "title": "Server-Side Request Forgery (SSRF)"
+        }
+      ]
+    },
+    {
+      "tool": "prismacloud",
+      "scanDate": "2024-01-15T10:32:00Z",
+      "vulnerabilities": [
+        {
+          "id": "CVE-2024-1234",
+          "severity": "critical",
+          "component": "nginx",
+          "version": "1.19.0"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "allowed": false,
+  "reason": "Critical vulnerabilities found in production environment",
+  "details": {
+    "criticalCount": 1,
+    "highCount": 1,
+    "policyViolations": [
+      "Production deployments must have 0 critical vulnerabilities"
+    ]
+  },
+  "evaluationId": "eval-12345",
+  "timestamp": "2024-01-15T10:33:00Z"
 }
 ```
 
@@ -204,51 +269,101 @@ Content-Type: application/json
 
 ### Configure Security Tools
 
+Register which security tools are used for an application (metadata only):
+
 ```bash
 POST /api/applications/{applicationId}/security-tools
 Content-Type: application/json
 
 {
   "tools": ["snyk", "prismacloud"],
-  "configuration": {
+  "metadata": {
     "snyk": {
-      "projectId": "abc-123"
+      "projectId": "abc-123",
+      "description": "Dependency scanning"
+    },
+    "prismacloud": {
+      "projectId": "xyz-789",
+      "description": "Container security"
     }
   }
 }
 ```
 
+**Note:** This endpoint only registers tool metadata. The CI pipeline is responsible for executing the security tools and sending their outputs to ComplianceService.
+
 ## OPA Policy Example
 
-Example Rego policy for critical applications:
+Example Rego policy evaluating scan results from multiple security tools:
 
 ```rego
 package compliance
 
 default allow = false
 
+# Critical applications in production must have zero critical/high vulnerabilities
 allow {
     input.riskTier == "critical"
     input.environment == "production"
-    count(critical_vulnerabilities) == 0
-    count(high_vulnerabilities) == 0
+    count(all_critical_vulnerabilities) == 0
+    count(all_high_vulnerabilities) == 0
 }
 
+# Medium risk applications in staging can have limited vulnerabilities
 allow {
     input.riskTier == "medium"
     input.environment == "staging"
-    count(critical_vulnerabilities) <= 2
-    count(high_vulnerabilities) <= 5
+    count(all_critical_vulnerabilities) <= 2
+    count(all_high_vulnerabilities) <= 5
 }
 
-critical_vulnerabilities[vuln] {
-    vuln := input.scanResults.vulnerabilities[_]
+# Low risk applications in dev have more relaxed thresholds
+allow {
+    input.riskTier == "low"
+    input.environment == "dev"
+    count(all_critical_vulnerabilities) <= 5
+    count(all_high_vulnerabilities) <= 10
+}
+
+# Aggregate critical vulnerabilities from all security tools
+all_critical_vulnerabilities[vuln] {
+    scan := input.scanResults[_]
+    vuln := scan.vulnerabilities[_]
     vuln.severity == "critical"
 }
 
-high_vulnerabilities[vuln] {
-    vuln := input.scanResults.vulnerabilities[_]
+# Aggregate high vulnerabilities from all security tools
+all_high_vulnerabilities[vuln] {
+    scan := input.scanResults[_]
+    vuln := scan.vulnerabilities[_]
     vuln.severity == "high"
+}
+
+# Helper to get vulnerability counts by tool
+vulnerabilities_by_tool[tool_name] = count {
+    scan := input.scanResults[_]
+    tool_name := scan.tool
+    count := count(scan.vulnerabilities)
+}
+```
+
+**Input Structure:**
+The policy receives scan results from the CI pipeline in this format:
+```json
+{
+  "applicationId": "my-payment-app",
+  "riskTier": "critical",
+  "environment": "production",
+  "scanResults": [
+    {
+      "tool": "snyk",
+      "vulnerabilities": [...]
+    },
+    {
+      "tool": "prismacloud",
+      "vulnerabilities": [...]
+    }
+  ]
 }
 ```
 
