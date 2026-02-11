@@ -10,7 +10,7 @@ namespace ComplianceService.Api.Controllers;
 /// Handles compliance evaluation requests and queries
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/compliance")]
 [Produces("application/json")]
 public class ComplianceController : ControllerBase
 {

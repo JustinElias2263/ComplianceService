@@ -10,7 +10,7 @@ namespace ComplianceService.Api.Controllers;
 /// Manages application registration and environment configuration
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/applications")]
 [Produces("application/json")]
 public class ApplicationController : ControllerBase
 {

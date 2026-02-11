@@ -9,7 +9,7 @@ namespace ComplianceService.Api.Controllers;
 /// Provides audit log queries and compliance reporting
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/audit")]
 [Produces("application/json")]
 public class AuditController : ControllerBase
 {
